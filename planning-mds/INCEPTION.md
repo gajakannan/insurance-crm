@@ -1,4 +1,4 @@
-# BrokerHub — Single Source of Truth Master Build Spec (Inception Prompt)
+# Insurance CRM — Single Source of Truth Master Build Spec (Inception Prompt)
 
 You are an AI development partner helping me create a production-grade Commercial P&C Insurance CRM.
 This document is the ONLY source of truth. Do not rely on any other spec packages unless explicitly told to.
