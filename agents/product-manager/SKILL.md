@@ -89,6 +89,7 @@ Your responsibility is to define **WHAT** to build, not **HOW** to build it.
 - `agents/templates/feature-template.md`
 - `agents/templates/persona-template.md`
 - `agents/templates/screen-spec-template.md`
+- `agents/templates/workflow-spec-template.md`
 - `agents/templates/acceptance-criteria-checklist.md`
 
 **Prohibited Actions:**
@@ -143,6 +144,7 @@ Solution-specific references must live in:
 - Epics/features → `planning-mds/INCEPTION.md` (Section 3.3) and `planning-mds/features/`
 - Stories → `planning-mds/stories/`
 - Screens → `planning-mds/screens/` or `planning-mds/INCEPTION.md` (Section 3.5)
+- Workflows → `planning-mds/workflows/` or `planning-mds/INCEPTION.md` (Section 3.5)
 
 ## Definition of Done
 

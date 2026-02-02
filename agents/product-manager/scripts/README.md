@@ -4,18 +4,17 @@ Generic scripts for validating stories and generating indexes.
 
 ## validate-stories.py
 
-Validate a single story file:
+Validate one or more story files:
 
 ```bash
 python agents/product-manager/scripts/validate-stories.py planning-mds/stories/S1-example.md
+python agents/product-manager/scripts/validate-stories.py planning-mds/stories/S1-example.md planning-mds/stories/S2-example.md
 ```
 
-Validate multiple stories:
+Validate a directory of stories:
 
 ```bash
-for story in planning-mds/stories/*.md; do
-  python agents/product-manager/scripts/validate-stories.py "$story"
-done
+python agents/product-manager/scripts/validate-stories.py planning-mds/stories/
 ```
 
 ## generate-story-index.py

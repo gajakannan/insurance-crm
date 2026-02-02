@@ -82,7 +82,7 @@ Non-negotiables:
 These are locked unless explicitly changed later:
 
 - Frontend: React 18 + TypeScript + Vite + Tailwind + shadcn/ui
-- State: TanStack Query, React Hook Form, Zod
+- State: TanStack Query, React Hook Form, AJV (JSON Schema validation)
 - Backend: C# / .NET 10 Minimal APIs
 - Database: PostgreSQL (dev + prod)
 - ORM: EF Core 10
@@ -91,6 +91,11 @@ These are locked unless explicitly changed later:
 - Workflow engine: Temporal (included in Phase 0)
 - Deploy: Docker + docker-compose
 - Agentic ops: Python MCP server (later, secondary interface; never source of truth)
+- Testing:
+  - Frontend: Vitest (unit/component), Playwright (E2E browser), @axe-core/playwright (a11y), Lighthouse CI (performance)
+  - Backend: xUnit (unit/integration), Testcontainers (database), Bruno CLI (API collections), Coverlet (coverage), k6 (load)
+  - AI/Neuron: pytest (unit/integration/evaluation), pytest-benchmark (performance), custom evaluation metrics
+  - Cross-cutting: Pact.NET (contract testing), OWASP ZAP (security), Trivy (vulnerability scanning)
 
 Architecture constraints:
 
