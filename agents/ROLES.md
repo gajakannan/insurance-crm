@@ -80,7 +80,15 @@ This document provides a quick index of all agent roles. For detailed specificat
 
 ---
 
-## Completion Status: 10/10 Agents Complete! 🎉
+### [AI Engineer](./ai-engineer/SKILL.md) ✅ **COMPLETE**
+**Scope:** Build AI intelligence layer - LLM integrations, agentic workflows, MCP servers
+**Phase:** Phase C (Implementation Mode)
+**Key Outputs:** Python code in neuron/, model integrations, MCP servers, agent workflows, prompts
+**Status:** SKILL.md created
+
+---
+
+## Completion Status: 11/11 Agents Complete! 🎉
 
 All builder agent specifications are now complete and ready to use!
 
@@ -98,11 +106,12 @@ All builder agent specifications are now complete and ready to use!
 - Blogger (optional)
 
 ### Phase C — Implementation Mode
-- **Backend Developer**
-- **Frontend Developer**
-- **Quality Engineer**
-- **DevOps**
-- **Technical Writer**
+- **Backend Developer** (C# .NET APIs, business logic)
+- **Frontend Developer** (React UI, forms)
+- **AI Engineer** (Python neuron/ layer, LLMs, agents, MCP)
+- **Quality Engineer** (Tests)
+- **DevOps** (Docker, deployment)
+- **Technical Writer** (Documentation)
 - Code Reviewer (per PR)
 - Security (testing & validation)
 - Blogger (continuous)
@@ -113,8 +122,9 @@ All builder agent specifications are now complete and ready to use!
 
 **Need to define what to build?** → Product Manager
 **Need to design how to build it?** → Architect
-**Need to implement backend logic?** → Backend Developer
-**Need to implement UI?** → Frontend Developer
+**Need to implement backend logic?** → Backend Developer (C# .NET)
+**Need to implement UI?** → Frontend Developer (React)
+**Need AI features or agents?** → AI Engineer (Python neuron/)
 **Need to test functionality?** → Quality Engineer
 **Need to deploy or containerize?** → DevOps
 **Need security validation?** → Security

@@ -27,6 +27,7 @@ cat planning-mds/INCEPTION.md
 - `agents/templates/feature-template.md`
 - `agents/templates/persona-template.md`
 - `agents/templates/screen-spec-template.md`
+- `agents/templates/workflow-spec-template.md`
 
 ## References
 

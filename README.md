@@ -13,12 +13,96 @@ The separation is intentional. Generic agents live in `agents/`. Solution-specif
 - Exploring the insurance CRM example? Read `planning-mds/INCEPTION.md` and the example artifacts under `planning-mds/examples/`.
 - Want the boundary rules? See `BOUNDARY-POLICY.md`.
 
+## Framework Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Nebula Agent-Driven Builder Framework                    │
+│                    Plan → Spec → Design → Build → Ship                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ACTION FLOW (User-Facing Compositions)                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  init       │ Bootstrap project structure                                   │
+│  plan       │ Phase A (PM) → Phase B (Architect) [2 approval gates]         │
+│  build      │ Backend + Frontend + QA + DevOps → Review [2 gates]           │
+│  feature    │ Single vertical slice (Backend + Frontend + QA) [1 gate]      │
+│  review     │ Code Reviewer + Security [1 gate]                             │
+│  validate   │ Architect + PM validation (read-only)                         │
+│  test       │ Quality Engineer testing workflow                             │
+│  document   │ Technical Writer documentation                                │
+│  blog       │ Blogger dev logs & articles                                   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                        ↓
+                              Actions compose Agents
+                                        ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  AGENTS (Role-Based Specialists) - 11 Agents                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Planning Phase (Phase A-B)                                                 │
+│  ├─ product-manager    │ Requirements, stories, acceptance criteria         │
+│  └─ architect          │ Design, data model, API contracts, patterns        │
+│                                                                              │
+│  Implementation Phase (Phase C)                                             │
+│  ├─ backend-developer  │ C# APIs, EF Core, domain logic (engine/)           │
+│  ├─ frontend-developer │ React, TypeScript, forms (experience/)             │
+│  ├─ ai-engineer        │ Python LLMs, agents, MCP, workflows (neuron/) 🧠   │
+│  ├─ quality-engineer   │ Unit, integration, E2E tests                       │
+│  └─ devops             │ Docker, docker-compose, deployment                 │
+│                                                                              │
+│  Quality & Documentation                                                    │
+│  ├─ code-reviewer      │ Code quality, standards, patterns                  │
+│  ├─ security           │ OWASP, auth/authz, vulnerabilities                 │
+│  ├─ technical-writer   │ API docs, README, runbooks                         │
+│  └─ blogger            │ Dev logs, technical articles                       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                        ↓
+                        Agents read from & write to
+                                        ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SOLUTION-SPECIFIC CONTENT (planning-mds/)                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Single Source of Truth                                                     │
+│  └─ INCEPTION.md       │ Master specification (Sections 0-6)                │
+│                                                                              │
+│  Domain Knowledge                                                           │
+│  └─ domain/            │ Glossary, competitive analysis                     │
+│                                                                              │
+│  Architecture                                                               │
+│  ├─ architecture/                                                           │
+│  │  ├─ SOLUTION-PATTERNS.md  │ Solution-specific patterns ⭐               │
+│  │  ├─ decisions/            │ ADRs                                         │
+│  │  ├─ data-model.md         │ Detailed ERD                                 │
+│  │  └─ api-contracts.md      │ API specifications                           │
+│  │                                                                           │
+│  Examples & Artifacts                                                       │
+│  ├─ examples/          │ Personas, features, stories, screens               │
+│  ├─ security/          │ Threat models, security reviews                    │
+│  └─ ...                                                                      │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+─────────────────────────────────────────────────────────────────────────────
+
+  9 Actions · 11 Agents · 1 Source of Truth (INCEPTION.md)
+  SOLUTION-PATTERNS.md for institutional knowledge
+  neuron/ for AI intelligence layer 🧠
+```
+
 ## Repository Layout (By Intent)
 
 - `agents/` - Generic, reusable agent roles, templates, and references. Copy as-is.
 - `planning-mds/` - Solution-specific requirements, examples, and decisions (Nebula CRM in this repo). Replace for a new project.
 - `inception-setup/` - Bootstrap guidance for starting a new project.
-- `engine/`, `experience/`, `soma/` - Implementation layers (currently placeholders in this repo).
+- `engine/` - Backend application layer (C# .NET APIs) - currently placeholder.
+- `experience/` - Frontend application layer (React UI) - currently placeholder.
+- `neuron/` - AI intelligence layer (Python LLMs, agents, MCP) 🧠 - directory structure created.
 - `docs/` - Meta documentation and audits.
 
 ## Reuse Workflow (New Project)

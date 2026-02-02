@@ -232,10 +232,19 @@ class ArchitectureValidator:
                 self.warnings.append(f"Entity '{entity}' in Data Model but not in API Contracts")
 
     def get_section_content(self, section_num: str) -> str:
-        """Extract content for a specific section."""
-        pattern = rf"##\s*{section_num}[.:\s].*?(?=##\s*\d|\Z)"
-        match = re.search(pattern, self.content, re.DOTALL | re.IGNORECASE)
-        return match.group(0) if match else ""
+        """Extract content for a specific section (## or ###)."""
+        start_pattern = re.compile(
+            rf"^##+\s*{re.escape(section_num)}[.:\s].*$",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        match = start_pattern.search(self.content)
+        if not match:
+            return ""
+
+        start = match.start()
+        next_heading = re.search(r"^##+\s*\d", self.content[match.end():], re.MULTILINE)
+        end = match.end() + next_heading.start() if next_heading else len(self.content)
+        return self.content[start:end]
 
 def main():
     if len(sys.argv) < 2:

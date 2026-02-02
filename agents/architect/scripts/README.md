@@ -13,3 +13,5 @@ python agents/architect/scripts/validate-architecture.py planning-mds/INCEPTION.
 ```bash
 python agents/architect/scripts/validate-api-contract.py planning-mds/api/example-api.yaml
 ```
+
+Note: `validate-api-contract.py` requires PyYAML (`pip install pyyaml`).

@@ -6,14 +6,15 @@ Validates user stories for completeness and quality.
 Checks that stories follow the template and have all required sections.
 
 Usage:
-    python validate-stories.py <path-to-story-file>
+    python validate-stories.py <file-or-dir> [<file-or-dir> ...]
+    python validate-stories.py planning-mds/stories/
     python validate-stories.py planning-mds/stories/*.md
 """
 
 import sys
 import re
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Iterable
 
 class StoryValidator:
     def __init__(self, file_path: str):
@@ -40,11 +41,16 @@ class StoryValidator:
             return False, self.errors, self.warnings
 
         # Required sections
+        self.check_story_header_fields()
         self.check_user_story_format()
+        self.check_context_background()
         self.check_acceptance_criteria()
         self.check_data_requirements()
+        self.check_role_based_visibility()
+        self.check_non_functional_expectations()
         self.check_dependencies()
         self.check_out_of_scope()
+        self.check_questions_assumptions()
         self.check_definition_of_done()
 
         # Quality checks
@@ -67,36 +73,70 @@ class StoryValidator:
 
     def check_acceptance_criteria(self):
         """Check for acceptance criteria section."""
-        if "## Acceptance Criteria" not in self.content and "### Acceptance Criteria" not in self.content:
+        section = self.get_section_content("Acceptance Criteria")
+        if not section:
             self.errors.append("Missing 'Acceptance Criteria' section")
             return
 
         # Check for at least one Given/When/Then or checklist item
-        has_given_when_then = bool(re.search(r"(Given|When|Then)", self.content))
-        has_checklist = bool(re.search(r"- \[ \]", self.content))
+        has_given_when_then = bool(re.search(r"(Given|When|Then)", section))
+        has_checklist = bool(re.search(r"- \[ \]", section))
 
         if not has_given_when_then and not has_checklist:
             self.errors.append("Acceptance criteria section exists but has no criteria (use Given/When/Then or checklist)")
 
     def check_data_requirements(self):
         """Check for data requirements section."""
-        if "## Data Requirements" not in self.content and "### Data Requirements" not in self.content:
-            self.warnings.append("Missing 'Data Requirements' section - consider adding if story involves data")
+        if not self.get_section_content("Data Requirements"):
+            self.errors.append("Missing 'Data Requirements' section")
+
+    def check_role_based_visibility(self):
+        """Check for role-based visibility section."""
+        if not self.get_section_content("Role-Based Visibility"):
+            self.errors.append("Missing 'Role-Based Visibility' section")
+
+    def check_non_functional_expectations(self):
+        """Check for non-functional expectations section."""
+        if not self.get_section_content("Non-Functional Expectations"):
+            self.warnings.append("Missing 'Non-Functional Expectations' section (add if applicable)")
 
     def check_dependencies(self):
         """Check for dependencies section."""
-        if "## Dependencies" not in self.content and "### Dependencies" not in self.content:
-            self.warnings.append("Missing 'Dependencies' section - confirm story is truly independent")
+        if not self.get_section_content("Dependencies"):
+            self.errors.append("Missing 'Dependencies' section")
 
     def check_out_of_scope(self):
         """Check for out of scope section."""
-        if "## Out of Scope" not in self.content and "### Out of Scope" not in self.content:
-            self.warnings.append("Missing 'Out of Scope' section - explicitly document what's NOT included")
+        if not self.get_section_content("Out of Scope"):
+            self.errors.append("Missing 'Out of Scope' section")
+
+    def check_questions_assumptions(self):
+        """Check for questions & assumptions section."""
+        if not self.get_section_content("Questions & Assumptions"):
+            self.warnings.append("Missing 'Questions & Assumptions' section")
 
     def check_definition_of_done(self):
         """Check for definition of done."""
-        if "## Definition of Done" not in self.content and "### Definition of Done" not in self.content:
-            self.warnings.append("Missing 'Definition of Done' section")
+        if not self.get_section_content("Definition of Done"):
+            self.errors.append("Missing 'Definition of Done' section")
+
+    def check_story_header_fields(self):
+        """Check for story header fields in the template."""
+        required_fields = [
+            "Story ID",
+            "Epic/Feature",
+            "Title",
+            "Priority",
+            "Phase",
+        ]
+        for field in required_fields:
+            if not re.search(rf"\\*\\*{re.escape(field)}:\\*\\*", self.content):
+                self.errors.append(f"Missing story header field: {field}")
+
+    def check_context_background(self):
+        """Check for context & background section."""
+        if not self.get_section_content("Context & Background"):
+            self.warnings.append("Missing 'Context & Background' section")
 
     def check_invest_criteria(self):
         """Check INVEST criteria quality."""
@@ -122,67 +162,124 @@ class StoryValidator:
 
         # Testable: Check for vague terms in acceptance criteria
         vague_terms = ["properly", "correctly", "appropriate", "fast", "user-friendly", "intuitive"]
-        ac_section = re.search(r"##? Acceptance Criteria.*?(?=##|\Z)", self.content, re.DOTALL | re.IGNORECASE)
+        ac_section = self.get_section_content("Acceptance Criteria")
         if ac_section:
-            ac_text = ac_section.group(0).lower()
+            ac_text = ac_section.lower()
             found_vague = [term for term in vague_terms if term in ac_text]
             if found_vague:
                 self.warnings.append(f"Acceptance criteria contain vague terms: {', '.join(found_vague)} - be more specific (INVEST - Testable)")
 
     def check_acceptance_criteria_quality(self):
         """Check acceptance criteria quality."""
+        ac_section = self.get_section_content("Acceptance Criteria")
+        if not ac_section:
+            return
+        ac_text = ac_section.lower()
 
         # Check for edge cases
-        if "edge case" not in self.content.lower() and "error scenario" not in self.content.lower():
+        if "edge case" not in ac_text and "error scenario" not in ac_text:
             self.warnings.append("No edge cases or error scenarios documented - consider adding")
 
         # Check for permission/authorization
-        if "permission" not in self.content.lower() and "authorized" not in self.content.lower():
+        if "permission" not in ac_text and "authorized" not in ac_text:
             self.warnings.append("No permission/authorization checks documented - consider adding if applicable")
 
         # Check for audit trail (if mutation involved)
         mutation_keywords = ["create", "update", "delete", "change", "transition", "modify"]
         if any(keyword in self.content.lower() for keyword in mutation_keywords):
-            if "timeline" not in self.content.lower() and "audit" not in self.content.lower():
+            if "timeline" not in ac_text and "audit" not in ac_text:
                 self.warnings.append("Story involves data mutation but has no audit/timeline requirements")
+
+    def get_section_content(self, section_name: str) -> str:
+        """Return the content of a markdown section by name (## or ###)."""
+        pattern = re.compile(rf"^##+\\s+{re.escape(section_name)}\\s*$", re.IGNORECASE | re.MULTILINE)
+        match = pattern.search(self.content)
+        if not match:
+            return ""
+        start = match.end()
+        next_heading = re.search(r"^##+\\s+", self.content[start:], re.MULTILINE)
+        end = start + next_heading.start() if next_heading else len(self.content)
+        return self.content[start:end].strip()
+
+def collect_story_files(paths: Iterable[str]) -> Tuple[List[Path], List[str]]:
+    story_files: List[Path] = []
+    errors: List[str] = []
+
+    for raw in paths:
+        path = Path(raw)
+        if not path.exists():
+            errors.append(f"Path not found: {path}")
+            continue
+        if path.is_dir():
+            for item in sorted(path.rglob("*.md")):
+                if item.name.upper() == "STORY-INDEX.MD":
+                    continue
+                story_files.append(item)
+        else:
+            story_files.append(path)
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique_files = []
+    for item in story_files:
+        if item not in seen:
+            seen.add(item)
+            unique_files.append(item)
+
+    return unique_files, errors
+
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python validate-stories.py <story-file-path>")
-        print("Example: python validate-stories.py planning-mds/stories/S1-example.md")
+        print("Usage: python validate-stories.py <file-or-dir> [<file-or-dir> ...]")
+        print("Example: python validate-stories.py planning-mds/stories/")
         sys.exit(1)
 
-    file_path = sys.argv[1]
+    story_files, path_errors = collect_story_files(sys.argv[1:])
 
-    print(f"Validating story: {file_path}")
-    print("-" * 60)
-
-    validator = StoryValidator(file_path)
-    is_valid, errors, warnings = validator.validate()
-
-    # Print errors
-    if errors:
-        print("\n❌ ERRORS (Must Fix):")
-        for i, error in enumerate(errors, 1):
-            print(f"  {i}. {error}")
-
-    # Print warnings
-    if warnings:
-        print("\n⚠️  WARNINGS (Should Fix):")
-        for i, warning in enumerate(warnings, 1):
-            print(f"  {i}. {warning}")
-
-    # Print summary
-    print("\n" + "=" * 60)
-    if is_valid and not warnings:
-        print("✅ Story validation PASSED - No issues found!")
-        sys.exit(0)
-    elif is_valid:
-        print(f"⚠️  Story validation PASSED with {len(warnings)} warning(s)")
-        sys.exit(0)
-    else:
-        print(f"❌ Story validation FAILED with {len(errors)} error(s) and {len(warnings)} warning(s)")
+    if path_errors:
+        for error in path_errors:
+            print(f"❌ {error}")
         sys.exit(1)
+
+    if not story_files:
+        print("❌ No story files found to validate.")
+        sys.exit(1)
+
+    total_errors = 0
+    total_warnings = 0
+
+    for file_path in story_files:
+        print(f"Validating story: {file_path}")
+        print("-" * 60)
+
+        validator = StoryValidator(str(file_path))
+        is_valid, errors, warnings = validator.validate()
+
+        if errors:
+            print("\n❌ ERRORS (Must Fix):")
+            for i, error in enumerate(errors, 1):
+                print(f"  {i}. {error}")
+
+        if warnings:
+            print("\n⚠️  WARNINGS (Should Fix):")
+            for i, warning in enumerate(warnings, 1):
+                print(f"  {i}. {warning}")
+
+        print("\n" + "=" * 60)
+        if is_valid and not warnings:
+            print("✅ Story validation PASSED - No issues found!")
+        elif is_valid:
+            print(f"⚠️  Story validation PASSED with {len(warnings)} warning(s)")
+        else:
+            print(f"❌ Story validation FAILED with {len(errors)} error(s) and {len(warnings)} warning(s)")
+
+        total_errors += len(errors)
+        total_warnings += len(warnings)
+
+    if total_errors > 0:
+        sys.exit(1)
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
