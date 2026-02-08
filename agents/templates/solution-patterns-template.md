@@ -22,9 +22,21 @@ This file captures project-level implementation conventions all agents must foll
 - `SHOULD` - recommended convention unless a documented exception exists
 - `MAY` - optional convention based on feature needs
 
+## Pattern Scope Labels
+
+Use one scope label for each pattern to make portability explicit:
+
+- `Universal` - technology-agnostic rule expected in any stack
+- `Stack-Specific` - tied to a concrete framework/tool choice
+- `Hybrid` - universal policy with stack-specific implementation details
+
 ---
 
 ## 1. Authorization Pattern
+
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
 
 ### Decision
 - Policy model:
@@ -53,6 +65,10 @@ permissions:
 ---
 
 ## 2. Audit and Timeline Pattern
+
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
 
 ### Decision
 - What gets logged:
@@ -85,6 +101,10 @@ permissions:
 
 ## 3. API Design Pattern
 
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
+
 ### Decision
 - API style (REST/GraphQL/etc):
 - Error format:
@@ -110,6 +130,10 @@ GET /api/customers?page=1&pageSize=20
 
 ## 4. Clean Architecture Pattern
 
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
+
 ### Decision
 - Layer boundaries:
 - Dependency direction:
@@ -134,6 +158,10 @@ Domain -> Application -> Infrastructure -> API
 
 ## 5. Frontend Pattern
 
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
+
 ### Decision
 - Form strategy:
 - Data-fetching strategy:
@@ -157,6 +185,10 @@ React Hook Form + JSON Schema validation + query caching
 ---
 
 ## 6. Data Modeling Pattern
+
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
 
 ### Decision
 - Entity identity strategy:
@@ -183,6 +215,10 @@ orders(id, customer_id, order_number, amount, status, order_date)
 ---
 
 ## 7. Testing Pattern
+
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
 
 ### Decision
 - Unit/integration/e2e split:
@@ -211,6 +247,10 @@ E2E: core customer/order workflow
 
 ## 8. Workflow Pattern
 
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
+
 ### Decision
 - State model:
 - Transition constraints:
@@ -236,6 +276,10 @@ Order: Draft -> Pending -> Processing -> Shipped -> Delivered
 
 ## 9. Cross-Cutting Pattern
 
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
+
 ### Decision
 - Observability defaults:
 - Error handling standard:
@@ -259,6 +303,10 @@ Structured logs + trace IDs + standardized problem details errors
 ---
 
 ## 10. DevOps Pattern
+
+### Scope
+- Label: `Universal` / `Stack-Specific` / `Hybrid`
+- Stack context (required when label is not `Universal`):
 
 ### Decision
 - Container strategy:

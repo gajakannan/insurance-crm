@@ -17,7 +17,8 @@
       "Bash(git add:*)",
       "Bash(bash scripts/validate-genericness.sh:*)",
       "Bash(python:*)",
-      "Bash(PYTHONIOENCODING=utf-8 python:*)"
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(xargs:*)"
     ]
   }
 }

@@ -10,7 +10,7 @@ services:
     #   generate and edit project artifacts directly in your workspace.
     # - For shared or production-like environments, prefer selective mounts or read-only
     #   mounts and an explicit output directory.
-    # - The container runs as a non-root user (uid/gid 10001 in the image).
+    # - The container runs as a non-root user (`builder:10001` in the image).
     volumes:
       - ./:/workspace
     stdin_open: true

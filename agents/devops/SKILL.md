@@ -66,6 +66,158 @@ Your responsibility is to implement the **deployment and operations layer** - ma
 
 ## Responsibilities
 
+### Deployment Architecture Workflow
+
+**DevOps follows a three-phase approach when containerizing and deploying applications:**
+
+```
+Phase 1: Discovery (Code Inspection)
+  ↓
+Phase 2: Design (Deployment Architecture)
+  ↓
+Phase 3: Implementation (Generate Configs)
+```
+
+---
+
+#### Phase 1: Code Inspection & Discovery
+
+**Objective:** Scan the codebase to understand what needs to be deployed.
+
+**Actions:**
+1. **Inspect `engine/` (Backend):**
+   - Detect language and framework (.NET, Java, Python, Node.js)
+   - Identify database connections (PostgreSQL, MySQL, MongoDB)
+   - Find authentication configuration (Keycloak, Auth0, JWT)
+   - Detect port configuration
+   - Extract environment variable requirements
+
+2. **Inspect `experience/` (Frontend):**
+   - Detect frontend framework (React, Vue, Angular)
+   - Identify build tool (Vite, Webpack, Angular CLI)
+   - Find API endpoint configuration
+   - Determine runtime (static files need Nginx)
+   - Extract environment variables
+
+3. **Inspect `neuron/` (AI Layer - if exists):**
+   - Detect Python version and framework (FastAPI)
+   - Identify LLM provider dependencies
+   - Find MCP server implementations
+   - Detect integration with backend (internal API calls)
+   - Extract AI-specific environment variables
+
+4. **Identify Infrastructure Requirements:**
+   - Database type and version
+   - Additional services (Redis, message queue, worker processes)
+   - Storage requirements (volumes for database, uploads)
+
+5. **Map Service Dependencies:**
+   - Which services depend on which
+   - Communication patterns (HTTP, WebSocket, database connections)
+   - Dependency startup order
+
+**Output:** Discovery summary document with detected services, dependencies, and requirements
+
+**Reference:** `agents/devops/references/containerization-guide.md` - Section: Phase 1
+
+---
+
+#### Phase 2: Deployment Architecture Design
+
+**Objective:** Create solution-specific deployment architecture template.
+
+**Actions:**
+1. **Choose Deployment Pattern:**
+   - API-Only (backend + database)
+   - 3-Tier (backend + frontend + database)
+   - AI-Enabled 3-Tier (backend + frontend + AI + database)
+   - Microservices (multiple services)
+
+2. **Consult Architect:**
+   - Read `planning-mds/architecture/SOLUTION-PATTERNS.md`
+   - Read `planning-mds/INCEPTION.md` Section 4 (NFRs)
+   - Review architectural decisions and constraints
+   - Optional: Ask Architect agent for clarification on deployment requirements
+
+3. **Define Service Specifications:**
+   - For each service: runtime, ports, dependencies, environment variables
+   - Database specifications: version, storage, health checks
+   - Network architecture and communication patterns
+   - Resource limits (CPU, memory)
+
+4. **Document Deployment Targets:**
+   - Development (local) configuration
+   - Staging configuration
+   - Production configuration and requirements
+
+5. **Create Deployment Architecture Template:**
+   - File: `planning-mds/architecture/deployment-architecture.md`
+   - Use template: `agents/templates/deployment-architecture-template.md`
+   - Fill in all sections based on code inspection and architectural decisions
+
+**Output:** `planning-mds/architecture/deployment-architecture.md` - Complete deployment architecture document
+
+**Approval Gate (Optional):** Present deployment architecture to user for review before generating configs
+
+**Reference:** `agents/devops/references/containerization-guide.md` - Section: Phase 2
+
+---
+
+#### Phase 3: Configuration Generation
+
+**Objective:** Generate Docker configurations based on deployment architecture template.
+
+**Actions:**
+1. **Generate `docker-compose.yml`:**
+   - Create services for all detected components
+   - Configure networks and volumes
+   - Set up health checks and dependencies
+   - Define restart policies
+   - Include environment variable placeholders
+
+2. **Generate Dockerfiles:**
+   - `engine/Dockerfile` - Backend API (multi-stage build)
+   - `experience/Dockerfile` - Frontend SPA (node build + nginx runtime)
+   - `neuron/Dockerfile` - AI layer (Python with dependencies)
+   - Optimize each Dockerfile for the detected framework
+
+3. **Generate Environment Configuration:**
+   - `.env.example` - Template with all required variables
+   - Document which secrets must be changed in production
+   - Group variables by service
+
+4. **Generate Deployment Scripts:**
+   - `scripts/dev-up.sh` - Start development environment
+   - `scripts/dev-down.sh` - Stop development environment
+   - `scripts/health-check.sh` - Verify all services are healthy
+   - `scripts/prod-deploy.sh` - Production deployment (if applicable)
+
+5. **Generate Supporting Configs:**
+   - `nginx.conf` (for frontend SPA routing)
+   - `.dockerignore` files
+   - Health check endpoints (if not already in code)
+
+6. **Update Deployment Architecture:**
+   - Add references to generated files in deployment-architecture.md
+   - Document how to use the generated configs
+
+**Output:**
+- `docker-compose.yml`
+- `Dockerfile` for each service
+- `.env.example`
+- Deployment scripts in `scripts/`
+- Supporting configuration files
+
+**Verification:**
+- Test that `docker-compose up` works
+- Verify all services start and pass health checks
+- Test inter-service communication
+- Verify environment variables are correctly configured
+
+**Reference:** `agents/devops/references/containerization-guide.md` - Section: Phase 3
+
+---
+
 ### 1. Containerization
 - Write Dockerfiles for all services (backend, frontend, AI/neuron)
 - Optimize Docker images (multi-stage builds, layer caching)
@@ -989,9 +1141,14 @@ scrape_configs:
 ## References
 
 Generic DevOps best practices:
+- `agents/devops/references/containerization-guide.md` - **Comprehensive containerization workflow (3 phases)**
 - `agents/devops/references/devops-best-practices.md`
 
+Templates:
+- `agents/templates/deployment-architecture-template.md` - **Template for Phase 2 deployment architecture**
+
 Solution-specific references:
+- `planning-mds/architecture/deployment-architecture.md` - **Created by DevOps in Phase 2**
 - `planning-mds/architecture/SOLUTION-PATTERNS.md` - DevOps patterns
 - `planning-mds/operations/` - Runbooks and operational docs
 - `docs/operations/deployment-guide.md`

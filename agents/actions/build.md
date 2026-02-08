@@ -167,27 +167,66 @@ Execute these agents **in parallel** (all working simultaneously). Run AI Engine
 
 #### 1d. DevOps
 1. **Activate DevOps agent** by reading `agents/devops/SKILL.md`
-2. **Read context:**
-   - `planning-mds/INCEPTION.md` Section 2 (tech stack)
-   - Existing Docker setup (if any)
-3. **Execute responsibilities:**
-   - Create/update Dockerfile for backend
-   - Create/update Dockerfile for frontend (if needed)
-   - Update docker-compose.yml for local dev
-   - Configure environment variables
-   - Create deployment scripts
-   - Document run instructions
-4. **Follow SOLUTION-PATTERNS.md:**
-   - Docker for all services
-   - docker-compose for local dev
-   - Environment variables for configuration
-5. **Outputs:**
-   - Dockerfile (backend)
-   - Dockerfile (frontend, if needed)
-   - docker-compose.yml
-   - .env.example
-   - Deployment scripts
-   - README updates (run instructions)
+
+2. **Follow three-phase workflow:**
+
+   **Phase 1: Code Inspection & Discovery**
+   - Scan `engine/` to detect backend framework and dependencies
+   - Scan `experience/` to detect frontend framework and build tool
+   - Scan `neuron/` to detect AI layer (if exists)
+   - Identify database connections and configuration
+   - Map service dependencies
+   - Extract environment variable requirements
+   - Document infrastructure needs (database, caching, queues)
+   - **Output:** Discovery summary with detected services and dependencies
+
+   **Phase 2: Deployment Architecture Design**
+   - Choose deployment pattern based on discovered services:
+     * API-Only (backend + database)
+     * 3-Tier (backend + frontend + database)
+     * AI-Enabled 3-Tier (backend + frontend + AI + database)
+   - Consult architecture references:
+     * Read `planning-mds/architecture/SOLUTION-PATTERNS.md`
+     * Read `planning-mds/INCEPTION.md` Section 4 (NFRs)
+     * Read `agents/devops/references/containerization-guide.md`
+   - Define service specifications (runtime, ports, dependencies, env vars)
+   - Document deployment targets (dev, staging, prod)
+   - Create deployment architecture template:
+     * File: `planning-mds/architecture/deployment-architecture.md`
+     * Use: `agents/templates/deployment-architecture-template.md`
+   - **Output:** `planning-mds/architecture/deployment-architecture.md`
+   - **Optional Approval Gate:** User reviews deployment architecture before config generation
+
+   **Phase 3: Configuration Generation**
+   - Generate `docker-compose.yml` based on deployment architecture
+   - Generate Dockerfiles for each detected service:
+     * `engine/Dockerfile` (multi-stage build for backend)
+     * `experience/Dockerfile` (node build + nginx runtime)
+     * `neuron/Dockerfile` (Python with dependencies, if exists)
+   - Generate `.env.example` with all required environment variables
+   - Generate deployment scripts:
+     * `scripts/dev-up.sh` (start development environment)
+     * `scripts/dev-down.sh` (stop development environment)
+     * `scripts/health-check.sh` (verify services)
+   - Generate supporting configs (nginx.conf, .dockerignore)
+   - Update deployment-architecture.md with references to generated files
+   - **Output:** All Docker configurations and deployment scripts
+
+3. **Verification:**
+   - Test `docker-compose up` works
+   - Verify all services start and pass health checks
+   - Test inter-service communication
+   - Validate environment variable configuration
+
+4. **Outputs:**
+   - `planning-mds/architecture/deployment-architecture.md` (Phase 2)
+   - `docker-compose.yml` (Phase 3)
+   - `Dockerfile` for each service (Phase 3)
+   - `.env.example` (Phase 3)
+   - Deployment scripts in `scripts/` (Phase 3)
+   - Supporting configuration files (Phase 3)
+
+**Reference:** `agents/devops/references/containerization-guide.md` - Full three-phase workflow guide
 
 #### 1e. AI Engineer (if AI scope)
 1. **Activate AI Engineer agent** by reading `agents/ai-engineer/SKILL.md`
@@ -252,10 +291,15 @@ Each agent validates their own work before proceeding to code review:
    - [ ] Quality gates met
 
 4. **DevOps self-review:**
-   - [ ] Docker containers build successfully
-   - [ ] docker-compose up works
-   - [ ] All services start correctly
-   - [ ] Environment variables documented
+   - [ ] Phase 1 complete: Code inspection summary documented
+   - [ ] Phase 2 complete: `planning-mds/architecture/deployment-architecture.md` created
+   - [ ] Phase 3 complete: All configuration files generated
+   - [ ] Docker containers build successfully (`docker-compose build`)
+   - [ ] All services start correctly (`docker-compose up`)
+   - [ ] Health checks pass for all services
+   - [ ] Inter-service communication works (frontend → backend → database)
+   - [ ] Environment variables documented in `.env.example`
+   - [ ] Deployment architecture matches detected code structure
 
 5. **AI Engineer self-review (if AI scope):**
    - [ ] AI workflows/prompts implemented per stories
