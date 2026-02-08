@@ -18,6 +18,7 @@ Contains:
 - framework documentation
 
 Does not contain:
+- generated application source code in `engine/`, `experience/`, or `neuron/`
 - project databases
 - production secrets
 - long-lived application runtime state
@@ -42,6 +43,7 @@ Typical services:
 
 Template:
 - Start from `agents/templates/docker-compose.app-template.yml` and customize per project.
+- Use `agents/devops/SKILL.md` for application Dockerfile, compose, and deployment guidance.
 
 ## Relationship
 

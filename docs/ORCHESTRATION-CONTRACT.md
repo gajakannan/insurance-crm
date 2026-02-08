@@ -42,12 +42,438 @@ It can be used with any agent runtime that can read markdown contracts and follo
 
 ## 7. Failure Handling
 
-- On step failure, report:
-  - failed step
-  - impacted artifacts
-  - suggested remediation
-- Follow action-defined retry paths.
-- Escalate to user when unresolved after retry limits.
+### 7.1 Failure Classification
+
+Orchestrators must distinguish between failure types and apply appropriate handling strategies:
+
+**Transient Failures (Retry Eligible):**
+- Network timeouts communicating with agents
+- Temporary resource unavailability (file locks, API rate limits)
+- Agent process crashes without data corruption
+- Recoverable validation failures (e.g., missing optional field)
+
+**Permanent Failures (No Retry):**
+- Invalid action specification (action file malformed)
+- Missing required role definition (SKILL.md not found)
+- Schema validation failures (required artifact fields missing)
+- Authorization failures (agent lacks required permissions)
+- User cancellation requests
+
+**Partial Failures (Selective Retry):**
+- Multi-agent parallel execution where subset fails
+- Multi-step action where intermediate step fails
+- Gate rejection requiring rework of specific artifacts
+
+---
+
+### 7.2 Agent Execution Failures
+
+#### Timeout Handling
+
+**Recommended Timeouts by Agent Type:**
+- Product Manager: 10 minutes
+- Architect: 15 minutes
+- Backend/Frontend/AI Developer: 30 minutes (code generation is slow)
+- Quality Engineer: 20 minutes (test execution)
+- Code Reviewer: 10 minutes
+- Security: 10 minutes
+- DevOps: 15 minutes
+- Technical Writer: 10 minutes
+
+**On Timeout:**
+1. Terminate agent execution gracefully
+2. Log timeout event with agent ID, action, and duration
+3. Preserve any partial artifacts created (do not delete)
+4. Present user with options:
+   - **Retry** - Run agent again with same inputs
+   - **Extend timeout** - Retry with longer timeout (useful for complex tasks)
+   - **Skip** - Continue without this agent's output (if optional)
+   - **Cancel** - Abort entire action
+
+---
+
+#### Invalid Output Handling
+
+**Validation Requirements:**
+- All agent outputs must be validated against expected schema
+- Validate artifact completeness (required sections, fields)
+- Validate artifact format (valid markdown, JSON, YAML, code syntax)
+- Validate cross-references (links to other artifacts are valid)
+
+**On Invalid Output:**
+1. Run validation checks on agent output
+2. If validation fails:
+   - Collect all validation errors with specific locations
+   - Re-invoke agent with error feedback in prompt:
+     ```
+     Previous output was invalid. Errors found:
+     - Missing required section: "3.2 Personas"
+     - Invalid JSON in line 45: unexpected token
+     - Broken reference: Link to non-existent story S99
+
+     Please correct these issues and regenerate output.
+     ```
+3. Retry up to **2 times** with error feedback
+4. If still invalid after 2 retries:
+   - Save invalid output to `.artifacts-failed/` directory
+   - Escalate to user with validation report
+   - User options:
+     - **Manual Fix** - User edits artifact directly
+     - **Retry with different agent** - Try different model/capability tier
+     - **Skip validation** - Accept output as-is (not recommended)
+
+---
+
+#### Missing Required Artifacts
+
+**On Missing Artifacts:**
+- Agent completes but expected output files do not exist
+- Check action's "Output Contract" for required artifacts
+
+**Handling:**
+1. Fail immediately (no retry for missing artifacts)
+2. Report to user:
+   ```
+   Agent <role> completed but required artifacts missing:
+   - Expected: planning-mds/architecture/data-model.md
+   - Expected: planning-mds/api/customers.yaml
+
+   This indicates an agent execution issue.
+   ```
+3. User options:
+   - **Retry agent** - Run again from scratch
+   - **Cancel** - Abort action
+
+---
+
+### 7.3 Partial Completion Failures
+
+#### Parallel Agent Execution
+
+**Scenario:** Multiple agents run in parallel (e.g., Backend + Frontend + AI Engineer in `build` action)
+
+**On Partial Failure:**
+- Some agents succeed, others fail
+
+**Handling Strategy:**
+1. **Preserve successful work** - Do not rollback or delete successful outputs
+2. **Retry failed agents only** - Re-run only the agents that failed
+3. **Do not proceed** - Block progression to next action step until ALL agents succeed
+4. **Report status clearly:**
+   ```
+   Parallel execution results:
+   ✅ Backend Developer - Success
+   ❌ Frontend Developer - Failed (syntax error in generated code)
+   ✅ Quality Engineer - Success
+
+   Retrying Frontend Developer...
+   ```
+
+**Retry Limits:**
+- Each failed agent gets **2 retry attempts**
+- If agent fails after 2 retries:
+  - Preserve other agents' work
+  - Escalate to user for manual intervention
+
+---
+
+#### Sequential Step Failures
+
+**Scenario:** Action has sequential steps (Step 1 → Step 2 → Step 3)
+
+**On Step Failure:**
+- Step N fails, but Steps 1 through N-1 succeeded
+
+**Handling Strategy:**
+1. **Stop execution** - Do not proceed to Step N+1
+2. **Preserve completed work** - Keep outputs from Steps 1 through N-1
+3. **Retry failed step** - Re-run Step N only (up to 2 times)
+4. **Resume on success** - Continue from Step N+1 after successful retry
+5. **Escalate on repeated failure** - After 2 retries, ask user:
+   - **Retry again** - Manual override for more attempts
+   - **Skip step** - Continue to next step (if step is optional)
+   - **Cancel action** - Abort entire action
+
+---
+
+### 7.4 Gate Failure Handling
+
+#### User Rejection at Approval Gate
+
+**Scenario:** User reviews artifact and selects "Reject" or "Request Changes"
+
+**Handling Flow:**
+```
+┌─────────────────────────────────┐
+│ Agent produces artifact         │
+└────────────┬────────────────────┘
+             ↓
+┌─────────────────────────────────┐
+│ Present to user at gate         │
+│ Options: Approve / Changes / Reject │
+└────────────┬────────────────────┘
+             ↓
+     ┌───────┴────────┐
+     │                │
+  Approve         Reject/Changes
+     │                │
+     ↓                ↓
+  Continue    ┌──────────────────┐
+              │ Capture feedback │
+              └────────┬─────────┘
+                       ↓
+              ┌──────────────────┐
+              │ Return to agent  │
+              │ with feedback    │
+              └────────┬─────────┘
+                       ↓
+              ┌──────────────────┐
+              │ Agent revises    │
+              └────────┬─────────┘
+                       ↓
+              ┌──────────────────┐
+              │ Present again    │
+              └──────────────────┘
+```
+
+**Implementation:**
+1. **Capture user feedback** - Require user to provide reason for rejection:
+   ```
+   Why are you rejecting this artifact?
+   [ User enters feedback: "Data model is missing Customer.Email field" ]
+   ```
+
+2. **Return to originating agent** - Re-invoke agent with rejection feedback:
+   ```
+   User rejected your output with feedback:
+   "Data model is missing Customer.Email field"
+
+   Please revise the artifact addressing this feedback.
+   ```
+
+3. **Iterate until approval** - Repeat revision → review loop
+   - **No limit on iterations** - User controls when to approve
+   - Each iteration logged with timestamp and feedback
+
+4. **Allow user cancellation** - User can abandon action at any iteration
+
+---
+
+#### Quality Gate Failures
+
+**Scenario:** Automated quality gate fails (e.g., test coverage < 80%, security scan finds critical issues)
+
+**Handling by Gate Type:**
+
+**Test Coverage Gate:**
+```
+Coverage: 65% (threshold: 80%)
+❌ FAIL - Below threshold
+
+Options:
+1. Fix coverage - Return to developers to add tests
+2. Lower threshold - Update quality requirements (requires justification)
+3. Override - Proceed anyway (requires approval + reason)
+```
+
+**Security Gate:**
+```
+Security scan found 2 CRITICAL issues:
+- SQL Injection vulnerability in CustomerController.cs:45
+- Hardcoded secret in config/database.json:12
+
+❌ BLOCK - Cannot proceed until resolved
+
+Action: Returning to Backend Developer to fix issues.
+```
+
+**Handling:**
+1. **Critical issues = Block** - Must be fixed, no override
+2. **Medium issues = Warn** - User can approve with justification
+3. **Low issues = Log** - Proceed but track for later
+
+---
+
+### 7.5 Retry Strategies
+
+#### Exponential Backoff for Transient Failures
+
+**For:** Network issues, rate limits, temporary unavailability
+
+**Strategy:**
+```python
+def retry_with_backoff(agent_fn, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return agent_fn()
+        except TransientError as e:
+            if attempt == max_retries - 1:
+                raise  # Final attempt failed
+
+            wait_seconds = 2 ** attempt  # 1s, 2s, 4s
+            log(f"Transient error: {e}. Retrying in {wait_seconds}s...")
+            time.sleep(wait_seconds)
+```
+
+**Max Retries:** 3 attempts with backoff
+
+---
+
+#### Immediate Retry for Recoverable Errors
+
+**For:** Validation failures with feedback, invalid output that can be corrected
+
+**Strategy:**
+- Retry immediately (no backoff) with error feedback
+- Max 2 retries
+- Each retry includes specific error messages to help agent correct
+
+---
+
+#### No Retry for Permanent Errors
+
+**For:** Missing files, authorization failures, schema violations
+
+**Strategy:**
+- Fail immediately
+- Report error to user
+- Do not waste time retrying (will fail again)
+
+---
+
+### 7.6 Rollback Procedures
+
+#### When to Rollback
+
+**Rollback scenarios:**
+- User explicitly requests rollback ("undo last action")
+- Critical error detected that corrupts artifact state
+- User cancels action mid-execution
+
+**When NOT to rollback:**
+- Partial failures in parallel execution (preserve successful work)
+- Gate rejections (keep work for revision)
+- Validation failures (keep for debugging)
+
+---
+
+#### Artifact Versioning for Rollback
+
+**Implementation:**
+1. **Before each action execution:**
+   - Create snapshot of current `planning-mds/` state
+   - Store in `.snapshots/<action>-<timestamp>/`
+   - Include manifest of all files
+
+2. **On rollback request:**
+   - User selects snapshot to restore
+   - Show diff: "This will revert 5 files, delete 3 new files"
+   - Require confirmation
+   - Restore from snapshot
+   - Log rollback event
+
+**Example snapshot structure:**
+```
+.snapshots/
+├── build-2026-02-07-10-30-00/
+│   ├── manifest.json            # List of files + checksums
+│   ├── planning-mds/            # Full snapshot
+│   ├── engine/                  # Generated code snapshot
+│   └── experience/
+└── plan-2026-02-07-09-15-00/
+    └── ...
+```
+
+**Retention policy:**
+- Keep last 10 snapshots per action
+- Auto-delete snapshots older than 30 days
+- User can manually delete to free space
+
+---
+
+### 7.7 Error Reporting Requirements
+
+**On any failure, orchestrator must report:**
+
+```
+┌─────────────────────────────────────────────┐
+│ EXECUTION FAILURE                           │
+├─────────────────────────────────────────────┤
+│ Action:       build                         │
+│ Step:         3 (Frontend Developer)        │
+│ Agent:        frontend-developer            │
+│ Failed at:    2026-02-07 10:45:23 UTC      │
+│ Duration:     12 minutes 34 seconds         │
+├─────────────────────────────────────────────┤
+│ Error Type:   ValidationError               │
+│ Message:      Generated code has syntax errors │
+├─────────────────────────────────────────────┤
+│ Impacted Artifacts:                         │
+│ - experience/src/components/CustomerList.tsx │
+│   (syntax error at line 45)                │
+├─────────────────────────────────────────────┤
+│ Suggested Remediation:                      │
+│ 1. Review error details above              │
+│ 2. Retry with error feedback (recommended) │
+│ 3. Edit file manually                      │
+├─────────────────────────────────────────────┤
+│ Options:                                    │
+│ [Retry] [Manual Fix] [Skip] [Cancel]       │
+└─────────────────────────────────────────────┘
+```
+
+**Log Requirements:**
+- Write full error details to `logs/errors/<timestamp>.json`
+- Include stack traces for debugging
+- Include agent inputs/outputs (if not too large)
+- Never log secrets or PII
+
+---
+
+### 7.8 Escalation to User
+
+**Escalate to user when:**
+- Retry limit exceeded (agent failed 3 times)
+- Permanent error encountered (cannot be retried)
+- Ambiguous situation (orchestrator doesn't know what to do)
+- User input required for decision
+
+**Escalation UI/UX:**
+1. **Stop execution** - Pause action, do not proceed
+2. **Present clear context:**
+   - What failed?
+   - Why did it fail?
+   - What has been tried already?
+3. **Provide actionable options:**
+   - Always include: "Retry", "Cancel"
+   - When applicable: "Manual Fix", "Skip", "Rollback"
+4. **Explain consequences** of each option
+5. **Wait for user decision** - Do not timeout or auto-proceed
+6. **Log user decision** - Record choice and reason (if provided)
+
+---
+
+### 7.9 Failure Handling Compliance
+
+**An orchestrator is compliant when:**
+- ✅ It distinguishes transient vs permanent failures
+- ✅ It retries transient failures with backoff (max 3 times)
+- ✅ It retries invalid outputs with feedback (max 2 times)
+- ✅ It preserves successful work in partial failures
+- ✅ It implements gate rejection feedback loops
+- ✅ It enforces quality gate blocking for critical issues
+- ✅ It supports rollback with artifact snapshots
+- ✅ It reports failures with impacted artifacts and remediation
+- ✅ It escalates to user after retry exhaustion
+- ✅ It logs all failures for debugging and auditing
+
+**Non-compliant behaviors:**
+- ❌ Silently swallowing errors without user notification
+- ❌ Infinite retry loops without user intervention
+- ❌ Rolling back successful work in partial failures
+- ❌ Proceeding past critical quality gate failures
+- ❌ Lacking rollback capability
+- ❌ Generic error messages without actionable remediation
 
 ## 8. Auditability
 
@@ -61,3 +487,34 @@ It can be used with any agent runtime that can read markdown contracts and follo
 
 This repository does not require a single vendor-specific orchestrator file to function.
 Any orchestrator is compatible if it honors this contract and role/action definitions.
+
+Examples of compatible execution models include Claude Code, OpenAI assistants,
+custom in-house orchestrators, or manual human-driven execution of action files.
+
+## 10. Action I/O Contract Matrix
+
+The orchestrator must treat each action definition as executable contract source.
+At minimum, it must satisfy the following action-level I/O requirements:
+
+| Action | Contract Source | Required Inputs | Primary Outputs | Gate Handling |
+|---|---|---|---|---|
+| `init` | `agents/actions/init.md` | Project name, domain context, target users, initial entities | `planning-mds/` scaffold, `planning-mds/INCEPTION.md`, `planning-mds/domain/glossary.md`, `planning-mds/architecture/SOLUTION-PATTERNS.md` | No explicit approval gate; validate required artifacts exist |
+| `plan` | `agents/actions/plan.md` | Existing `planning-mds/INCEPTION.md`, domain/context inputs, user clarifications | Updated `INCEPTION.md`, planning artifacts (stories/personas/features/screens), architecture specs and contracts per action | Enforce all gates defined in action (including requirement and architecture approvals) |
+| `build` | `agents/actions/build.md` | Approved planning + architecture artifacts, stories, API and pattern references | Production code, tests, deployment configs, build/review summaries | Enforce review/approval/security gates and route on user decision |
+| `feature` | `agents/actions/feature.md` | Feature-scoped stories + architecture/API context | Feature-scoped backend/frontend/AI changes and tests, feature review output | Enforce feature review approval gate and required rework loops |
+| `review` | `agents/actions/review.md` | Candidate implementation artifacts and applicable planning/architecture references | Code-quality and security review findings with remediation expectations | Enforce review gate outcome (`approve` / fix / reject path) |
+| `validate` | `agents/actions/validate.md` | `planning-mds/` artifacts and consistency context | Validation report, gaps, and corrective actions | No skip of required validation checklist steps |
+| `test` | `agents/actions/test.md` | Implemented code, story acceptance criteria, test strategy inputs | Test plan, executed results, defect reports, quality summary | Enforce stop/continue behavior specified by quality thresholds |
+| `document` | `agents/actions/document.md` | Implemented features, API/contracts, operational context | Documentation artifacts (README/API/runbook/usage docs as scoped by action) | Apply review gate if defined by action; otherwise require completeness checks |
+| `blog` | `agents/actions/blog.md` | Change context, release narrative inputs, evidence links | Dev log or technical blog artifacts | Apply quality checks defined in action before completion |
+
+## 11. Contract Compliance Checklist
+
+An orchestrator implementation is compliant when all are true:
+
+- It maps user intent to the correct `agents/actions/<action>.md`.
+- It loads required role guides from `agents/<role>/SKILL.md` at execution time.
+- It requests missing required inputs instead of guessing.
+- It writes outputs to action-specified artifact locations.
+- It executes and records all gate decisions without silent bypass.
+- It reports failures with impacted artifacts and next-step remediation.

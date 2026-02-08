@@ -64,3 +64,9 @@ PRs should include:
 - any follow-up tasks
 
 Keep changes focused and avoid unrelated edits in the same PR.
+
+## 8) Branch and Commit Conventions
+
+- Branch names should be descriptive and scoped (for example: `docs/vendor-neutral-language`, `fix/dockerignore-security`).
+- Use small, focused commits by concern (docs, templates, actions, scripts).
+- Prefer Conventional Commit style for clarity (for example: `docs: add orchestration I/O matrix`, `chore: tighten dockerignore exclusions`).
