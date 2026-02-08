@@ -5,6 +5,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# Base builder image intentionally includes only orchestration utilities.
+# Stack-specific SDKs/toolchains should live in application runtime containers.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     ca-certificates \

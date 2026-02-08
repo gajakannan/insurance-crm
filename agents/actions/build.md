@@ -28,6 +28,14 @@ Build Complete
 
 ---
 
+## Runtime Execution Boundary
+
+- The builder runtime orchestrates roles, gates, and artifact flow. Keep it stack-agnostic.
+- Stack-specific compile/test/security execution must run in application runtime containers (or CI jobs built from those container definitions).
+- Store executable evidence (test, lint, SAST, dependency scan outputs) under solution artifacts and use it in review gates.
+
+---
+
 ## Execution Steps
 
 ### Step 0: Architect-Led Assembly Planning
@@ -75,7 +83,8 @@ Validator:
 
 **Execution Instructions:**
 
-Execute these agents **in parallel** (all working simultaneously). Run AI Engineer when stories include AI/LLM/MCP scope:
+Execute these agents **in parallel** (all working simultaneously). Run AI Engineer when stories include AI/LLM/MCP scope.
+All stack-specific execution (compile/tests/scans) must run in application runtime containers produced for this project.
 
 **AI Scope Checklist — include AI Engineer if ANY apply:**
 - [ ] Story mentions LLM, AI, or machine learning behavior
@@ -254,7 +263,7 @@ Execute these agents **in parallel** (all working simultaneously). Run AI Engine
 
 **Completion Criteria for Step 1:**
 - [ ] All required agents have completed their work (Backend, Frontend, Quality, DevOps, and AI Engineer if AI scope)
-- [ ] Code compiles/builds successfully
+- [ ] Code compiles/builds successfully in application runtime containers
 - [ ] No critical errors or blockers
 
 ---
@@ -272,7 +281,7 @@ Each agent validates their own work before proceeding to code review:
    - [ ] Integration tests passing for all endpoints
    - [ ] SOLUTION-PATTERNS.md followed (ABAC, audit, timeline events)
    - [ ] All acceptance criteria met
-   - [ ] Code compiles and runs
+   - [ ] Code compiles and runs in backend application runtime container
 
 2. **Frontend Developer self-review:**
    - [ ] All screens implemented per specs
@@ -285,7 +294,7 @@ Each agent validates their own work before proceeding to code review:
 
 3. **Quality Engineer self-review:**
    - [ ] Test plan complete
-   - [ ] All tests passing
+   - [ ] All tests passing in application runtime containers
    - [ ] Coverage reports generated
    - [ ] Critical workflows have E2E tests
    - [ ] Quality gates met
@@ -304,7 +313,7 @@ Each agent validates their own work before proceeding to code review:
 5. **AI Engineer self-review (if AI scope):**
    - [ ] AI workflows/prompts implemented per stories
    - [ ] MCP resources/tools functional (if required)
-   - [ ] AI unit/integration tests passing
+   - [ ] AI unit/integration tests passing in AI runtime container
    - [ ] Cost/safety/observability controls implemented
    - [ ] No hardcoded API keys or secrets
 
@@ -316,8 +325,8 @@ Each agent validates their own work before proceeding to code review:
 **Gate Criteria:**
 - [ ] Architect confirms assembled output matches Step 0 plan
 - [ ] All required agents pass self-review
-- [ ] All tests passing
-- [ ] Application runs successfully
+- [ ] All tests passing in application runtime containers
+- [ ] Application runtime services start and run successfully
 
 ---
 
@@ -430,42 +439,70 @@ Each agent validates their own work before proceeding to code review:
 2. **Present approval checklist:**
    ```
    Code Review Approval Checklist:
-   - [ ] No critical issues found (or all fixed)
+   - [ ] No critical issues (critical findings must be fixed before approval)
+   - [ ] High-severity issues are either fixed or approved with mitigation justification
    - [ ] Code follows SOLID principles
    - [ ] Clean architecture boundaries respected
-   - [ ] Test coverage ≥80% for business logic
+   - [ ] Test coverage evidence captured from application runtime containers
    - [ ] SOLUTION-PATTERNS.md patterns followed
    - [ ] Acceptance criteria met
    - [ ] Code is maintainable and readable
    ```
 
-3. **Ask user for approval:**
-   ```
-   Do you approve the code quality?
+3. **Enforce code-review gate based on severity:**
 
-   Options:
-   - "approve" - Code quality acceptable, proceed to security review
-   - "fix critical" - Fix critical issues, then re-review
-   - "reject" - Provide feedback and significant rework needed
+   **Gate Decision Logic:**
+   ```
+   IF critical_issues > 0:
+     STATUS: ❌ BLOCKED
+     MESSAGE: "Critical code quality issues MUST be fixed before security review."
+     OPTIONS: ["Fix Critical Issues", "Reject"]
+     APPROVE_ENABLED: false
+
+   ELSE IF high_issues > 0:
+     STATUS: ⚠️ WARNING
+     MESSAGE: "High-severity code issues found. Recommend fixing before approval."
+     OPTIONS: ["Fix High Issues (Recommended)", "Approve with Justification", "Reject"]
+     APPROVE_ENABLED: true (requires justification)
+
+   ELSE:
+     STATUS: ✓ ACCEPTABLE
+     MESSAGE: "No critical/high code quality issues found."
+     OPTIONS: ["Approve", "Fix Issues Anyway", "Reject"]
+     APPROVE_ENABLED: true
    ```
 
 4. **Handle user response:**
-   - **If "approve":**
-     - Proceed to Step 5 (Security Review)
-
-   - **If "fix critical":**
+   - **If "Fix Critical Issues":**
      - Identify critical issues
      - Agents fix issues
      - Return to Step 3 (re-run code review)
 
-   - **If "reject":**
+   - **If "Fix High Issues (Recommended)" or "Fix Issues Anyway":**
+     - Identify selected issues
+     - Agents fix issues
+     - Return to Step 3 (re-run code review)
+
+   - **If "Approve with Justification":**
+     - Require explicit justification for remaining high issues
+     - Log decision and mitigation plan
+     - Proceed to Step 5 (Security Review)
+
+   - **If "Approve":**
+     - Proceed to Step 5 (Security Review)
+
+   - **If "Reject":**
      - Capture feedback
      - Return to Step 0 (re-plan and re-implement with feedback)
 
+   - **If user input is not in `OPTIONS` for current gate state:**
+     - Do not transition
+     - Re-present current gate state and valid options
+
 **Gate Criteria:**
-- [ ] Code review passed or approved with minor recommendations
-- [ ] No critical issues
-- [ ] User explicitly approves
+- [ ] Critical code issues = 0 (approval blocked otherwise)
+- [ ] High issues fixed or approved with explicit justification
+- [ ] User decision recorded with rationale when required
 
 ---
 
@@ -500,6 +537,7 @@ Each agent validates their own work before proceeding to code review:
    - Review error messages (no info leakage)
    - Check HTTPS/TLS configuration
    - Validate CORS policies
+   - Run dependency/container vulnerability scans in application runtime containers (or CI jobs built from them)
 
 4. **Produce security review report:**
    ```markdown
@@ -605,33 +643,231 @@ Each agent validates their own work before proceeding to code review:
    - [ ] Input validation comprehensive
    ```
 
-3. **Ask user for approval:**
+3. **Enforce security gate based on findings severity:**
+
+   **Gate Decision Logic:**
+
+   The security gate enforces different rules based on severity of findings:
+
    ```
-   Do you approve the security posture?
+   IF critical_issues > 0:
+     STATUS: ❌ BLOCKED
+     MESSAGE: "Critical security issues MUST be fixed. Cannot proceed."
+     OPTIONS: ["Fix Critical Issues", "Cancel Build"]
+     APPROVE_ENABLED: false
+
+   ELSE IF high_issues > 0:
+     STATUS: ⚠️ WARNING
+     MESSAGE: "High-severity security issues found. Recommend fixing before approval."
+     OPTIONS: ["Fix Issues (Recommended)", "Approve with Justification", "Cancel Build"]
+     APPROVE_ENABLED: true (requires justification)
+
+   ELSE IF medium_issues > 0 OR low_issues > 0:
+     STATUS: ✓ ACCEPTABLE
+     MESSAGE: "Only medium/low severity issues found. Safe to approve."
+     OPTIONS: ["Approve", "Fix Issues Anyway", "Cancel Build"]
+     APPROVE_ENABLED: true
+
+   ELSE:
+     STATUS: ✓ CLEAN
+     MESSAGE: "No security issues found. Safe to proceed."
+     OPTIONS: ["Approve"]
+     APPROVE_ENABLED: true
+   ```
+
+4. **Present gate to user with appropriate options:**
+
+   **Scenario A: Critical Issues Found (BLOCKING)**
+   ```
+   ❌ SECURITY GATE: BLOCKED
+
+   Critical security issues found:
+   - [CRITICAL] SQL Injection vulnerability in CustomerController.cs:45
+   - [CRITICAL] Hardcoded API key in appsettings.json:12
+
+   High severity issues:
+   - [HIGH] Missing authentication on /api/admin endpoint
+
+   ❌ Cannot proceed until critical issues are resolved.
 
    Options:
-   - "approve" - Security acceptable, build complete
-   - "fix critical" - Fix critical/high issues, then re-review
-   - "reject" - Significant security concerns, major rework needed
+   [Fix Critical Issues] [Cancel Build]
    ```
 
-4. **Handle user response:**
-   - **If "approve":**
+   **Handling:**
+   - **"Fix Critical Issues":**
+     - Return to appropriate developer agents to fix issues
+     - Re-run Security review (return to Step 5)
+     - Repeat until critical issues = 0
+
+   - **"Cancel Build":**
+     - Abort build action
+     - User can restart with `build` action later
+
+   ---
+
+   **Scenario B: High Issues Only (WARNING - Approval Requires Justification)**
+   ```
+   ⚠️ SECURITY GATE: WARNING
+
+   High severity issues found:
+   - [HIGH] Missing rate limiting on authentication endpoints
+   - [HIGH] Weak password policy (min length: 6)
+
+   Medium/Low issues:
+   - [MEDIUM] CORS policy too permissive
+   - [LOW] Missing security headers
+
+   ⚠️ Recommend fixing high-severity issues before approval.
+
+   Options:
+   [Fix Issues (Recommended)] [Approve with Justification] [Cancel Build]
+   ```
+
+   **Handling:**
+   - **"Fix Issues (Recommended)":**
+     - Return to developer agents to fix issues
+     - Re-run Security review
+
+   - **"Approve with Justification":**
+     - Require user to provide justification:
+       ```
+       Why are you approving with high-severity issues?
+       [ User enters reason: "These are planned for Phase 2 per ADR-015" ]
+       ```
+     - Log approval decision with justification to audit trail
      - Proceed to Step 7 (Build Complete)
 
-   - **If "fix critical":**
-     - Identify critical/high issues
-     - Agents fix security issues
-     - Return to Step 5 (re-run security review)
+   - **"Cancel Build":**
+     - Abort build action
 
-   - **If "reject":**
-     - Capture feedback
-     - Return to Step 0 (re-plan and re-implement with security focus)
+   ---
 
-**Gate Criteria:**
-- [ ] Security review passed or approved with low-severity findings only
-- [ ] No critical or high-severity vulnerabilities
-- [ ] User explicitly approves
+   **Scenario C: Medium/Low Issues Only (ACCEPTABLE)**
+   ```
+   ✓ SECURITY GATE: ACCEPTABLE
+
+   Medium severity issues:
+   - [MEDIUM] CORS policy could be more restrictive
+   - [MEDIUM] Session timeout could be shorter
+
+   Low severity issues:
+   - [LOW] Missing X-Content-Type-Options header
+   - [LOW] Verbose error messages in dev mode
+
+   ✓ No critical or high-severity issues. Safe to approve.
+
+   Options:
+   [Approve] [Fix Issues Anyway] [Cancel Build]
+   ```
+
+   **Handling:**
+   - **"Approve":**
+     - Proceed to Step 7 (Build Complete)
+
+   - **"Fix Issues Anyway":**
+     - Return to developer agents to fix issues
+     - Re-run Security review
+
+   - **"Cancel Build":**
+     - Abort build action
+
+   ---
+
+   **Scenario D: No Issues (CLEAN)**
+   ```
+   ✓ SECURITY GATE: CLEAN
+
+   No security issues found.
+
+   ✅ All security checks passed:
+   - No SQL injection vulnerabilities
+   - No hardcoded secrets
+   - Authentication properly implemented
+   - Authorization enforced on all endpoints
+   - Input validation comprehensive
+   - OWASP Top 10 compliance verified
+
+   Options:
+   [Approve]
+   ```
+
+   **Handling:**
+   - **"Approve":**
+     - Proceed to Step 7 (Build Complete)
+
+5. **Machine-Readable Gate State:**
+
+   Orchestrators must be able to programmatically determine gate state:
+
+   ```json
+   {
+     "gate": "security_review",
+     "status": "blocked" | "warning" | "acceptable" | "clean",
+     "findings": {
+       "critical": 2,
+       "high": 1,
+       "medium": 3,
+       "low": 5
+     },
+     "can_approve": false,
+     "requires_justification": false,
+     "available_actions": ["fix_critical_issues", "cancel"],
+     "blocking_issues": [
+       {
+         "severity": "critical",
+         "type": "sql_injection",
+         "location": "CustomerController.cs:45",
+         "description": "Unsanitized user input in SQL query"
+       },
+       {
+         "severity": "critical",
+         "type": "hardcoded_secret",
+         "location": "appsettings.json:12",
+         "description": "API key hardcoded in configuration"
+       }
+     ]
+   }
+   ```
+
+**Gate Criteria (Enforcement Rules):**
+- ❌ **BLOCKED:** If critical issues > 0, approval is DISABLED (no override possible)
+- ⚠️ **WARNING:** If high issues > 0 (and critical = 0), approval ENABLED but requires justification
+- ✓ **ACCEPTABLE:** If only medium/low issues, approval ENABLED without restriction
+- ✓ **CLEAN:** If no issues, approval ENABLED
+
+**Contract Compliance:**
+This security gate enforcement aligns with `docs/ORCHESTRATION-CONTRACT.md` Section 7.4 (Quality Gate Failures):
+- Critical issues = Block (must be fixed, no override) ✅
+- High issues = Warn (user can approve with justification) ✅
+- Medium/Low issues = Acceptable (proceed, track for later) ✅
+
+**Audit Log Requirements:**
+- Log all gate decisions with timestamp, user, severity counts
+- For "Approve with Justification", log the justification text
+- For "Fix Critical Issues", log which issues were identified
+- Append to `planning-mds/.audit/gate-decisions.jsonl`
+
+**Example Audit Log Entry:**
+```json
+{
+  "gate": "security_review",
+  "timestamp": "2026-02-07T15:30:00Z",
+  "user": "user@example.com",
+  "decision": "blocked",
+  "findings": {
+    "critical": 2,
+    "high": 1,
+    "medium": 3,
+    "low": 5
+  },
+  "action_taken": "fix_critical_issues",
+  "blocking_issues": [
+    "SQL Injection in CustomerController.cs:45",
+    "Hardcoded API key in appsettings.json:12"
+  ]
+}
+```
 
 ---
 
@@ -710,7 +946,7 @@ Security Review:
 Next Steps:
 ═══════════════════════════════════════════════════════════
 
-1. Run application: docker-compose up
+1. Run application runtime stack: docker-compose up
 2. Test features manually
 3. Run "document" action to generate docs
 4. Deploy to staging environment
@@ -726,11 +962,11 @@ All features implemented and approved! ✓
 **Overall Build Action Success:**
 - [ ] Application assembly plan created and followed
 - [ ] All required implementation agents completed work (including AI Engineer when AI scope exists)
-- [ ] All tests passing (unit, integration, E2E)
-- [ ] AI tests passing (if AI scope)
+- [ ] All tests passing (unit, integration, E2E) in application runtime containers
+- [ ] AI tests passing (if AI scope) in AI runtime container
 - [ ] Code review approved
 - [ ] Security review approved
-- [ ] Application runs successfully
+- [ ] Application runtime containers run successfully
 - [ ] All acceptance criteria met
 
 ---
@@ -760,6 +996,6 @@ Before running build action:
 - Build action implements ALL features in scope (use feature action for incremental)
 - Implementation agents work in parallel for efficiency
 - Reviews are sequential to ensure quality gates
-- Critical/high security issues must be fixed before approval
+- Critical issues block approval; high issues require explicit mitigation justification if approved
 - Can re-run steps if approval gates fail
 - All patterns in SOLUTION-PATTERNS.md must be followed

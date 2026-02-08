@@ -27,10 +27,16 @@ Usage:
 - Build via root `Dockerfile`.
 - Run interactively to execute planning/build workflows in a mounted workspace.
 
+Execution boundary:
+- The builder container is intentionally stack-agnostic and orchestration-focused.
+- Do not treat the builder container as the place to install every app stack SDK/toolchain.
+- Use the builder to coordinate workflows and collect artifacts, not to host production stack runtimes.
+
 ## 2) Application Runtime Container(s)
 
 Purpose:
 - Run the generated application stack (backend, frontend, database, and optional services).
+- Host stack-specific compile/test/lint/security execution for the generated solution.
 
 Produced by:
 - `build` / `feature` actions and implementation agents (Backend, Frontend, AI Engineer, DevOps).
@@ -52,9 +58,11 @@ Builder Container
   -> reads/writes planning and implementation artifacts
   -> coordinates agent workflows
   -> outputs app runtime configs
+  -> records gate decisions and execution evidence locations
 
 Application Containers
   -> run generated services
+  -> execute stack-specific compile/test/security commands
   -> validated by QA/review/security gates
 ```
 
@@ -62,4 +70,5 @@ Application Containers
 
 - The builder and application runtimes are intentionally separate concerns.
 - The builder runtime should not be treated as a production app deployment container.
+- Stack-specific SDK/tooling belongs with the application runtime containers, not the builder base image.
 - Application container strategy is project-specific and evolves with architecture decisions in `planning-mds/`.

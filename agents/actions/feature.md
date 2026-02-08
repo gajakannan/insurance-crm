@@ -26,6 +26,14 @@ Feature Complete
 
 ---
 
+## Runtime Execution Boundary
+
+- The builder runtime orchestrates feature flow and gates; keep it stack-agnostic.
+- Stack-specific compile/test/lint/security execution must run in application runtime containers (or CI jobs built from those container definitions).
+- Review and approval decisions must cite evidence produced by those application runtime executions.
+
+---
+
 ## Execution Steps
 
 ### Step 0: Architect-Led Feature Assembly Planning
@@ -72,7 +80,8 @@ Validator:
 
 **Execution Instructions:**
 
-Execute these agents **in parallel** for the specific feature. Run AI Engineer when the feature touches `neuron/`, LLM workflows, prompts, or MCP:
+Execute these agents **in parallel** for the specific feature. Run AI Engineer when the feature touches `neuron/`, LLM workflows, prompts, or MCP.
+All stack-specific execution (compile/tests/scans) must run in application runtime containers produced for this project.
 
 **AI Scope Checklist — include AI Engineer if ANY apply:**
 - [ ] Story mentions LLM, AI, or machine learning behavior
@@ -177,7 +186,7 @@ Execute these agents **in parallel** for the specific feature. Run AI Engineer w
 
 **Completion Criteria for Step 1:**
 - [ ] All required agents completed feature implementation (Backend, Frontend, Quality, and AI Engineer if AI scope)
-- [ ] Feature code compiles/builds successfully
+- [ ] Feature code compiles/builds successfully in application runtime containers
 - [ ] No critical errors
 
 ---
@@ -207,13 +216,13 @@ Each agent validates their feature work:
 
 3. **AI Engineer self-review (if AI scope):**
    - [ ] AI feature behavior meets acceptance criteria
-   - [ ] AI tests passing
+   - [ ] AI tests passing in AI runtime container
    - [ ] MCP/tool interfaces validated (if used)
    - [ ] Safety/cost/observability controls in place
 
 4. **Quality Engineer self-review:**
    - [ ] Feature test plan complete
-   - [ ] E2E tests passing for feature
+   - [ ] E2E tests passing for feature in application runtime containers
    - [ ] Coverage adequate for feature code
    - [ ] All feature acceptance criteria testable
 
@@ -225,7 +234,7 @@ Each agent validates their feature work:
 **Gate Criteria:**
 - [ ] Architect confirms feature output matches Step 0 plan
 - [ ] All required agents pass self-review for feature
-- [ ] All feature tests passing
+- [ ] All feature tests passing in application runtime containers
 - [ ] Feature works end-to-end
 
 ---
@@ -242,6 +251,7 @@ Run these review agents in parallel:
 
 2. **Read context:**
    - Feature code produced in Step 1
+   - Application runtime validation outputs (test, lint, SAST, dependency scan reports)
    - `planning-mds/INCEPTION.md` (feature requirements)
    - `planning-mds/architecture/SOLUTION-PATTERNS.md`
    - Feature user stories with acceptance criteria
@@ -305,6 +315,7 @@ Run these review agents in parallel:
 
 2. **Read context:**
    - Feature code produced in Step 1
+   - Application runtime validation outputs (test, lint, SAST, dependency scan reports)
    - `planning-mds/INCEPTION.md` (feature requirements)
    - `planning-mds/architecture/SOLUTION-PATTERNS.md`
    - Feature user stories with acceptance criteria
@@ -316,6 +327,7 @@ Run these review agents in parallel:
    - Validate input/output validation and error leakage controls
    - Check secrets/config handling (no hardcoded secrets)
    - Validate audit logging coverage for mutations
+   - Run dependency/container vulnerability scans in application runtime containers (or CI jobs built from them)
 
 4. **Produce feature security review report:**
    ```markdown
@@ -407,43 +419,67 @@ Run these review agents in parallel:
    - [ ] Backend implementation complete
    - [ ] Frontend implementation complete
    - [ ] AI implementation complete (if AI scope)
-   - [ ] Tests cover feature completely
-   - [ ] No critical issues
-   - [ ] No critical/high security vulnerabilities
+   - [ ] Tests cover feature completely with evidence from application runtime containers
+   - [ ] No critical issues (approval blocked if any remain)
+   - [ ] High-severity issues fixed OR approved with mitigation justification
    - [ ] SOLUTION-PATTERNS.md followed
    - [ ] All feature acceptance criteria met
    - [ ] Feature can be deployed independently
    ```
 
-3. **Ask user for approval:**
+3. **Enforce approval gate based on combined findings severity:**
    ```
-   Do you approve this feature?
+   total_critical = code_critical + security_critical
+   total_high = code_high + security_high
 
-   Options:
-   - "approve" - Feature approved, ready to merge
-   - "fix issues" - Fix identified issues, then re-review
-   - "reject" - Significant rework needed
+   IF total_critical > 0:
+     STATUS: ❌ BLOCKED
+     OPTIONS: ["fix critical", "reject"]
+     APPROVE_ENABLED: false
+
+   ELSE IF total_high > 0:
+     STATUS: ⚠️ WARNING
+     OPTIONS: ["fix issues", "approve with justification", "reject"]
+     APPROVE_ENABLED: true (requires justification)
+
+   ELSE:
+     STATUS: ✓ ACCEPTABLE
+     OPTIONS: ["approve", "fix issues", "reject"]
+     APPROVE_ENABLED: true
    ```
 
 4. **Handle user response:**
-   - **If "approve":**
-     - Proceed to Step 5 (Feature Complete)
-
-   - **If "fix issues":**
-     - Identify issues to fix
+   - **If "fix critical":**
+     - Identify critical issues to fix
      - Agents fix issues
      - Return to Step 3 (re-run code and security reviews)
+
+   - **If "fix issues":**
+     - Identify selected issues to fix
+     - Agents fix issues
+     - Return to Step 3 (re-run code and security reviews)
+
+   - **If "approve with justification":**
+     - Capture explicit mitigation justification for remaining high issues
+     - Log decision with mitigation plan
+     - Proceed to Step 5 (Feature Complete)
+
+   - **If "approve":**
+     - Proceed to Step 5 (Feature Complete)
 
    - **If "reject":**
      - Capture feedback
      - Return to Step 0 (re-plan and re-implement feature)
 
+   - **If user input is not in current state's allowed options:**
+     - Do not transition
+     - Re-present current state and allowed options
+
 **Gate Criteria:**
-- [ ] Code review passed
-- [ ] Security review passed (or only accepted low-risk findings remain)
-- [ ] No critical issues
+- [ ] Code + security critical issues = 0 before approval is enabled
+- [ ] High issues fixed or approved with explicit mitigation justification
 - [ ] Feature is complete vertical slice
-- [ ] User explicitly approves
+- [ ] User decision recorded with rationale when required
 
 ---
 
@@ -495,7 +531,7 @@ Code Review:
 
 Security Review:
   ✓ Security Agent: PASS
-  ✓ No critical/high vulnerabilities
+  ✓ No critical vulnerabilities (high findings fixed or justified)
   ✓ Authorization and validation checks complete
   Status: PASS
 
@@ -524,13 +560,13 @@ Feature delivered! ✓
 **Overall Feature Action Success:**
 - [ ] Feature assembly plan created and followed
 - [ ] Feature is complete vertical slice (backend + frontend + tests + AI when in scope)
-- [ ] All feature tests passing
-- [ ] AI tests passing (if AI scope)
+- [ ] All feature tests passing in application runtime containers
+- [ ] AI tests passing (if AI scope) in AI runtime container
 - [ ] Code review approved
 - [ ] Security review approved
 - [ ] All feature acceptance criteria met
 - [ ] Feature can be deployed independently
-- [ ] User approved
+- [ ] User decision recorded per gate rules
 
 ---
 
@@ -634,9 +670,9 @@ User: "Run the feature action for customer search"
 [Step 4: Approval gate]
 Agent Runtime: "Feature review results:
   - Issues: 1 critical (missing authorization check)
-  - Recommendation: FIX ISSUES"
+  - Recommendation: FIX CRITICAL"
 
-User: "fix issues"
+User: "fix critical"
 
 Agent Runtime: "Fixing authorization check..."
 [Backend Developer adds authorization]
@@ -675,3 +711,4 @@ Agent Runtime: "Feature complete!"
 - Feature action ensures true vertical slicing discipline
 - Security review is part of the feature action (run `review` action separately for deeper audit scope when needed)
 - DevOps agent not included (assumes Docker setup already exists)
+- Critical findings block approval; high findings require explicit mitigation justification if approved

@@ -11,6 +11,8 @@ services:
     # - For shared or production-like environments, prefer selective mounts or read-only
     #   mounts and an explicit output directory.
     # - The container runs as a non-root user (`builder:10001` in the image).
+    # - Keep this image stack-agnostic; run stack-specific compile/test/security in
+    #   generated application runtime containers.
     volumes:
       - ./:/workspace
     stdin_open: true

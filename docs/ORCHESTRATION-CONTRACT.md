@@ -289,8 +289,8 @@ Action: Returning to Backend Developer to fix issues.
 
 **Handling:**
 1. **Critical issues = Block** - Must be fixed, no override
-2. **Medium issues = Warn** - User can approve with justification
-3. **Low issues = Log** - Proceed but track for later
+2. **High issues = Warn** - User can approve only with explicit justification
+3. **Medium/Low issues = Log** - Proceed but track for later
 
 ---
 
@@ -491,6 +491,12 @@ Any orchestrator is compatible if it honors this contract and role/action defini
 Examples of compatible execution models include Claude Code, OpenAI assistants,
 custom in-house orchestrators, or manual human-driven execution of action files.
 
+### 9.1 Container Execution Boundary
+
+- Treat the builder runtime as orchestration-only and stack-agnostic.
+- Execute stack-specific compile/test/lint/security steps in application runtime containers (or CI jobs built from those containers).
+- Gate decisions must be based on recorded evidence from those stack-specific executions.
+
 ## 10. Action I/O Contract Matrix
 
 The orchestrator must treat each action definition as executable contract source.
@@ -500,9 +506,9 @@ At minimum, it must satisfy the following action-level I/O requirements:
 |---|---|---|---|---|
 | `init` | `agents/actions/init.md` | Project name, domain context, target users, initial entities | `planning-mds/` scaffold, `planning-mds/INCEPTION.md`, `planning-mds/domain/glossary.md`, `planning-mds/architecture/SOLUTION-PATTERNS.md` | No explicit approval gate; validate required artifacts exist |
 | `plan` | `agents/actions/plan.md` | Existing `planning-mds/INCEPTION.md`, domain/context inputs, user clarifications | Updated `INCEPTION.md`, planning artifacts (stories/personas/features/screens), architecture specs and contracts per action | Enforce all gates defined in action (including requirement and architecture approvals) |
-| `build` | `agents/actions/build.md` | Approved planning + architecture artifacts, stories, API and pattern references | Production code, tests, deployment configs, build/review summaries | Enforce review/approval/security gates and route on user decision |
-| `feature` | `agents/actions/feature.md` | Feature-scoped stories + architecture/API context | Feature-scoped backend/frontend/AI changes and tests, feature review output | Enforce feature review approval gate and required rework loops |
-| `review` | `agents/actions/review.md` | Candidate implementation artifacts and applicable planning/architecture references | Code-quality and security review findings with remediation expectations | Enforce review gate outcome (`approve` / fix / reject path) |
+| `build` | `agents/actions/build.md` | Approved planning + architecture artifacts, stories, API and pattern references | Production code, tests, deployment configs, build/review summaries | Enforce severity-based review/security gates (no critical override) and route on user decision |
+| `feature` | `agents/actions/feature.md` | Feature-scoped stories + architecture/API context | Feature-scoped backend/frontend/AI changes and tests, feature review output | Enforce severity-based feature gate outcome (critical blocks approval) |
+| `review` | `agents/actions/review.md` | Candidate implementation artifacts and applicable planning/architecture references | Code-quality and security review findings with remediation expectations | Enforce severity-based review gate outcome (critical blocks approval) |
 | `validate` | `agents/actions/validate.md` | `planning-mds/` artifacts and consistency context | Validation report, gaps, and corrective actions | No skip of required validation checklist steps |
 | `test` | `agents/actions/test.md` | Implemented code, story acceptance criteria, test strategy inputs | Test plan, executed results, defect reports, quality summary | Enforce stop/continue behavior specified by quality thresholds |
 | `document` | `agents/actions/document.md` | Implemented features, API/contracts, operational context | Documentation artifacts (README/API/runbook/usage docs as scoped by action) | Apply review gate if defined by action; otherwise require completeness checks |

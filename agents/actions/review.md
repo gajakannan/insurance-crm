@@ -18,6 +18,14 @@ Review Complete
 
 ---
 
+## Runtime Execution Boundary
+
+- The builder runtime orchestrates review flow and gate decisions; it remains stack-agnostic.
+- Stack-specific compile/test/lint/security execution must run in application runtime containers (or CI jobs built from those container definitions).
+- Review gate decisions must reference evidence generated from those application runtime executions.
+
+---
+
 ## Execution Steps
 
 ### Step 1: Parallel Reviews
@@ -32,6 +40,7 @@ Execute these review agents **in parallel**:
 2. **Read context:**
    - Source code (backend, frontend, and `neuron/` when AI scope exists)
    - Test suites
+   - Application runtime validation outputs (test, lint, SAST, dependency scan reports)
    - `planning-mds/INCEPTION.md` (requirements and architecture)
    - `planning-mds/architecture/SOLUTION-PATTERNS.md`
    - User stories with acceptance criteria
@@ -319,26 +328,27 @@ Execute these review agents **in parallel**:
    ═══════════════════════════════════════════════════════════
    ```
 
-2. **Present decision matrix:**
+2. **Compute gate state from combined findings:**
    ```
-   Review Decision Matrix:
+   total_critical = code_critical + security_critical
+   total_high = code_high + security_high
+   total_medium = code_medium + security_medium
+   total_low = code_low + security_low
 
-   Based on findings, recommended action:
+   IF total_critical > 0:
+     STATUS: ❌ BLOCKED
+     OPTIONS: ["Fix Critical", "Reject"]
+     APPROVE_ENABLED: false
 
-   IF no critical issues (code or security):
-     → APPROVE - Ready to merge/deploy
+   ELSE IF total_high > 0:
+     STATUS: ⚠️ WARNING
+     OPTIONS: ["Fix All High (Recommended)", "Approve with Justification", "Reject"]
+     APPROVE_ENABLED: true (requires justification)
 
-   IF critical code issues only:
-     → FIX CRITICAL CODE - Address critical code issues, re-review
-
-   IF critical security issues:
-     → FIX CRITICAL SECURITY - Address security vulnerabilities, re-review
-
-   IF high-severity issues only:
-     → CONDITIONAL APPROVAL - Fix high-priority items, can merge with plan
-
-   IF rejected by either reviewer:
-     → REJECT - Significant rework needed
+   ELSE:
+     STATUS: ✓ ACCEPTABLE
+     OPTIONS: ["Approve", "Fix Issues Anyway", "Reject"]
+     APPROVE_ENABLED: true
    ```
 
 3. **Present approval checklist:**
@@ -346,48 +356,56 @@ Execute these review agents **in parallel**:
    Review Approval Checklist:
    - [ ] No critical code quality issues
    - [ ] No critical security vulnerabilities
-   - [ ] No high-severity security issues (or mitigation plan exists)
+   - [ ] High-severity issues fixed OR approved with mitigation justification
    - [ ] OWASP Top 10 compliance acceptable
    - [ ] SOLUTION-PATTERNS.md followed
-   - [ ] Test coverage adequate
+   - [ ] Test/scan evidence from application runtime containers attached
    - [ ] Authorization correctly implemented
    - [ ] Audit logging complete
    ```
 
-4. **Ask user for decision:**
-   ```
-   What action do you want to take?
-
-   Options:
-   - "approve" - Accept findings, approve for merge/deployment
-   - "fix critical" - Fix critical issues, then re-review
-   - "fix all high" - Fix critical + high issues, then re-review
-   - "reject" - Significant rework needed, return to implementation
-   ```
+4. **Present gate options by state:**
+   - **If BLOCKED (critical findings exist):**
+     - Options: `"fix critical"`, `"reject"`
+     - Do not present any approve option.
+   - **If WARNING (no critical, one or more high):**
+     - Options: `"fix all high"`, `"approve with justification"`, `"reject"`
+   - **If ACCEPTABLE (no critical/high):**
+     - Options: `"approve"`, `"fix issues anyway"`, `"reject"`
 
 5. **Handle user response:**
-   - **If "approve":**
-     - Proceed to Step 3 (Review Complete)
-
    - **If "fix critical":**
      - Identify critical issues (code + security)
      - Developers fix critical issues
      - Return to Step 1 (re-run reviews)
 
-   - **If "fix all high":**
-     - Identify critical + high issues
+   - **If "fix all high" or "fix issues anyway":**
+     - Identify selected issues
      - Developers fix issues
      - Return to Step 1 (re-run reviews)
+
+   - **If "approve with justification":**
+     - Capture explicit mitigation justification for remaining high issues
+     - Log decision and mitigation plan
+     - Proceed to Step 3 (Review Complete)
+
+   - **If "approve":**
+     - Proceed to Step 3 (Review Complete)
 
    - **If "reject":**
      - Capture feedback
      - Return to implementation
      - Full rebuild required
 
+   - **If user input is not in the current state's allowed options:**
+     - Do not transition
+     - Re-present current state and allowed options
+
 **Gate Criteria:**
 - [ ] Both reviews completed
-- [ ] User reviewed findings
-- [ ] User made explicit decision
+- [ ] Combined critical issues = 0 before approval is enabled
+- [ ] Any high-issue approval includes explicit mitigation justification
+- [ ] User decision logged with rationale when required
 
 ---
 
@@ -404,12 +422,12 @@ Review Complete - APPROVED ✓
 ═══════════════════════════════════════════════════════════
 
 Code Quality: [Status]
-  - Critical issues: [count] (all fixed or accepted)
+  - Critical issues: [count] (all fixed)
   - Pattern compliance: ✓
   - Test coverage: [percentage]%
 
 Security: [Status]
-  - Critical vulnerabilities: [count] (all fixed or accepted)
+  - Critical vulnerabilities: [count] (all fixed)
   - OWASP Top 10: [passed count]/10
   - Authorization: ✓
 
@@ -467,7 +485,8 @@ Issues identified. Fix and re-review.
 - [ ] Security review completed
 - [ ] User reviewed findings
 - [ ] User made explicit decision
-- [ ] If approved: No critical/high issues remaining
+- [ ] If approved: No critical issues remain
+- [ ] If approved with high issues: Mitigation + justification recorded
 - [ ] If fix required: Issues documented with remediation plan
 
 ---
@@ -522,7 +541,7 @@ Agent Runtime: "Review complete.
   Code: APPROVED WITH RECOMMENDATIONS (2 medium issues)
   Security: PASS
 
-  Do you want to take action? (approve/fix critical/reject)"
+  Do you want to take action? (approve/fix issues anyway/reject)"
 
 User: "approve"
 
@@ -552,7 +571,7 @@ Agent Runtime: "Review complete.
   Location: CustomerController.cs:45
   Must fix before deployment!
 
-  What action? (approve/fix critical/reject)"
+  What action? (fix critical/reject)"
 
 User: "fix critical"
 
@@ -562,12 +581,12 @@ Agent Runtime: "Fixing SQL injection vulnerability..."
 Agent Runtime: "Issue fixed. Running security review again..."
 [Security re-reviews]
 
-Agent Runtime: "Security review: PASS. Critical issue resolved.
-  Do you approve now?"
+Agent Runtime: "Security review: WARNING. Critical issue resolved; 2 high issues remain.
+  What action? (fix all high/approve with justification/reject)"
 
-User: "approve"
+User: "approve with justification"
 
-Agent Runtime: "Review approved!"
+Agent Runtime: "Justification recorded. Review approved with mitigation plan."
 ```
 
 ---
@@ -587,5 +606,5 @@ Agent Runtime: "Review approved!"
 - Critical issues must be fixed before approval
 - Review reports should be saved for tracking
 - Reviews can be re-run after changes
-- User has final decision on approval (agents recommend, user decides)
+- User has final decision on approval within gate constraints (agents recommend, user decides)
 - Automated tools can supplement but not replace agent reviews

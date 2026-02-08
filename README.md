@@ -143,6 +143,7 @@ Security note:
 - The compose workflow mounts your workspace read-write for local development.
 - Use selective or read-only mounts in shared/production-like environments.
 - The container runs as a non-root user by default.
+- The builder container is orchestration-focused and stack-agnostic; run stack-specific compile/test/security in application runtime containers.
 
 See `docs/CONTAINER-STRATEGY.md` for builder vs application runtime separation.
 
@@ -151,6 +152,7 @@ See `docs/CONTAINER-STRATEGY.md` for builder vs application runtime separation.
 The framework is opinionated about delivery practices and provides stack-specific references in some agent guides.
 In this repo, the default references assume a modern .NET + React + PostgreSQL stack. If you adopt a different stack,
 keep the agent roles but replace the stack-specific reference guides and examples with your own.
+Keep the builder base runtime generic; put stack SDKs and execution tooling in the generated application runtime containers.
 
 ## Key Documents
 

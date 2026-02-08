@@ -2,7 +2,7 @@
 
 ## Can I use this framework with a different tech stack?
 
-Yes. The roles and templates are reusable; only stack-specific references and examples need changes. See `agents/TECH-STACK-ADAPTATION.md`.
+Yes. The roles and templates are reusable; only stack-specific references and examples need changes. Keep the builder runtime stack-agnostic, and run stack-specific compile/test/security in application runtime containers. See `agents/TECH-STACK-ADAPTATION.md`.
 
 ## Can I use this for non-CRM projects?
 
