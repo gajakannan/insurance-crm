@@ -19,7 +19,7 @@ This directory contains **generic, reusable** agent role definitions for buildin
 │  init       │ Bootstrap project structure                                   │
 │  plan       │ Phase A (PM) → Phase B (Architect) [2 approval gates]         │
 │  build      │ Backend + Frontend + AI* + QA + DevOps → Review [2 gates]     │
-│  feature    │ Single vertical slice (Backend + Frontend + AI* + QA) [1 gate]│
+│  feature    │ Single vertical slice (Backend + Frontend + AI* + QA + DevOps) │
 │  review     │ Code Reviewer + Security [1 gate]                             │
 │  validate   │ Architect + PM validation (read-only)                         │
 │  test       │ Quality Engineer testing workflow                             │

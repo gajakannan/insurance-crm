@@ -7,6 +7,14 @@ This repository serves two purposes:
 
 The separation is intentional. Generic agents live in `agents/`. Solution-specific planning artifacts live in `planning-mds/`.
 
+## Release Scope (Initial Public Preview)
+
+As of 2026-02-08, this repository is published as a human-orchestrated framework preview:
+
+- Actions are executed by a human operator following `agents/actions/*.md`.
+- There is no built-in automated orchestrator in this initial release.
+- Automated orchestration integration (for example, SDK-based runners) is planned for a later phase after framework validation.
+
 ## Quick Orientation
 
 - New project? Start with `inception-setup/README.md` and copy `agents/` into your repo.
@@ -28,7 +36,7 @@ The separation is intentional. Generic agents live in `agents/`. Solution-specif
 │  init       │ Bootstrap project structure                                   │
 │  plan       │ Phase A (PM) → Phase B (Architect) [2 approval gates]         │
 │  build      │ Backend + Frontend + AI* + QA + DevOps → Review [2 gates]     │
-│  feature    │ Single vertical slice (Backend + Frontend + AI* + QA) [1 gate]│
+│  feature    │ Single vertical slice (Backend + Frontend + AI* + QA + DevOps) │
 │  review     │ Code Reviewer + Security [1 gate]                             │
 │  validate   │ Architect + PM validation (read-only)                         │
 │  test       │ Quality Engineer testing workflow                             │
@@ -163,6 +171,24 @@ Keep the builder base runtime generic; put stack SDKs and execution tooling in t
 - `docs/FAQ.md` - Common questions about reuse, stacks, and boundaries.
 - `docs/CONTAINER-STRATEGY.md` - Two-container model (builder runtime vs application runtime).
 - `docs/ORCHESTRATION-CONTRACT.md` - Orchestrator-neutral execution contract.
+- `docs/MANUAL-ORCHESTRATION-RUNBOOK.md` - Required manual execution/evidence flow for the preview release.
+- `docs/PREVIEW-RELEASE-CHECKLIST.md` - Definition of done for the initial public preview.
+- `lifecycle-stage.yaml` - Lifecycle stage declaration + required gate matrix.
+- `scripts/run-lifecycle-gates.py` - Stage-aware gate runner used locally and in CI.
+
+## Lifecycle Gates
+
+Gates are activated by lifecycle stage, not by ad-hoc command selection.
+
+```bash
+python3 scripts/run-lifecycle-gates.py --list
+python3 scripts/run-lifecycle-gates.py
+```
+
+CI runs the same command and therefore validates the gates required by `current_stage` only.
+A green CI run is not equivalent to `implementation` or `release-readiness` gate completion.
+
+Update `lifecycle-stage.yaml` when moving from bootstrap/planning to implementation/release stages.
 
 ## Why This Exists
 
@@ -177,6 +203,8 @@ It is orchestrator-agnostic and model-agnostic:
 - You can execute it with any agent runtime that follows `docs/ORCHESTRATION-CONTRACT.md`.
 - Action files define composition patterns; your orchestrator maps user intents to those actions.
 - This repository does not enforce a single vendor-specific orchestration runtime.
+- Initial preview mode is human-orchestrated; use `docs/MANUAL-ORCHESTRATION-RUNBOOK.md`.
+- Automated orchestrator integrations are future work after framework validation.
 
 ## Boundary Policy (Short Version)
 

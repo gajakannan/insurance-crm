@@ -238,7 +238,7 @@ if (errors.Count > 0)
 ## Implementation Plan
 
 ### Phase 1: Setup (Week 1)
-- [ ] Create `planning-mds/schemas/` directory structure
+- [x] Create `planning-mds/schemas/` directory structure
 - [ ] Install AJV and @hookform/resolvers/ajv in frontend
 - [ ] Install NJsonSchema in backend
 - [ ] Set up type generation scripts

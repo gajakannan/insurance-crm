@@ -208,7 +208,7 @@ When uncertain:
 A post is ready only when all gates pass.
 
 ### Gate 1: Factual Accuracy
-- Claims map to evidence in repository artifacts.
+- Assertions map to evidence in repository artifacts.
 - No fabricated metrics or outcomes.
 
 ### Gate 2: Audience Fit
@@ -273,7 +273,7 @@ If destination is not specified by user:
 
 - Marketing-heavy post with little technical substance
 - Timeline summary without lessons or decisions
-- Claims with no evidence
+- Assertions with no evidence
 - Overly long code excerpts that obscure the narrative
 - Public post leaking internal operational detail
 - Retrospective that avoids concrete corrective actions

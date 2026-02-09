@@ -1,9 +1,23 @@
 # Orchestration Contract
 
-This document defines the minimum contract an orchestrator must satisfy to execute this framework.
+This document defines the minimum execution contract for running this framework, whether the flow is executed by a human operator or an automated orchestrator.
 
 The framework is orchestrator-agnostic and model-agnostic.
 It can be used with any agent runtime that can read markdown contracts and follow file-based workflows.
+
+## 0. Execution Modes
+
+### 0.1 Manual Mode (Initial Public Preview)
+
+- A human operator executes action files and role guides directly.
+- The manual operator must still enforce all required gates and approval decisions.
+- Evidence capture is required; follow `docs/MANUAL-ORCHESTRATION-RUNBOOK.md`.
+
+### 0.2 Automated Mode (Future)
+
+- An automated orchestrator may run the same contracts.
+- Automated execution must satisfy all requirements in this document.
+- Replacing manual flow with automation must not weaken gate, approval, boundary, or audit requirements.
 
 ## 1. Action Discovery
 
@@ -482,6 +496,7 @@ def retry_with_backoff(agent_fn, max_retries=3):
   - which roles were activated
   - which artifacts were read/written
   - which approval decisions were made
+- In manual mode, store evidence for each run using `docs/MANUAL-ORCHESTRATION-RUNBOOK.md`.
 
 ## 9. Runtime Independence
 
@@ -524,3 +539,38 @@ An orchestrator implementation is compliant when all are true:
 - It writes outputs to action-specified artifact locations.
 - It executes and records all gate decisions without silent bypass.
 - It reports failures with impacted artifacts and next-step remediation.
+
+## 12. Lifecycle Stages and Gate Activation
+
+Lifecycle-stage declaration is split into:
+- Policy contract in this document (human-readable)
+- Machine-readable config in `lifecycle-stage.yaml` (execution source of truth)
+
+### 12.1 Canonical Stage Source
+
+- The current lifecycle stage must be declared in `lifecycle-stage.yaml` under `current_stage`.
+- Stage names and required gate sets must be declared in `lifecycle-stage.yaml` under `stages`.
+- Gate command definitions must be declared in `lifecycle-stage.yaml` under `gates`.
+- CI and local validation execution must resolve required gates from this file.
+
+### 12.2 Stage Intent
+
+- `framework-bootstrap`:
+  - Framework setup and boundary hardening.
+  - Solution/application runtime remains placeholder.
+- `planning`:
+  - Planning artifacts are authored and reviewed.
+  - Implementation/runtime gates remain non-strict where app runtime does not exist.
+- `implementation`:
+  - Application runtime artifacts exist.
+  - Strict infra and strict security evidence gates are mandatory.
+- `release-readiness`:
+  - Public-release hardening and final gate evidence collection.
+  - Strict infra/security gates remain mandatory.
+
+### 12.3 Required Execution Model
+
+- Execute required gates via `python3 scripts/run-lifecycle-gates.py`.
+- CI must run the same command and fail on any required gate failure.
+- Changing lifecycle stage requires updating `lifecycle-stage.yaml` in version control.
+- Gate evidence used for approval decisions must correspond to the currently declared stage.

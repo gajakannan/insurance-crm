@@ -92,7 +92,7 @@ Examples of issues to flag:
 ✅ "3-click maximum to create customer"
 
 ❌ "Dashboard is intuitive"
-✅ "Dashboard shows: revenue chart, top 5 customers, recent submissions"
+✅ "Dashboard shows: revenue chart, top 5 customers, recent orders"
 ```
 
 ### Architect Validation - Enhanced
@@ -260,9 +260,9 @@ Implementation Validation:
 
 - ✅ Clarification step added to `plan.md`
 - ✅ Validation enhancements documented (this file)
-- ⏳ validate.md enhancements (manual update needed)
+- ✅ `validate.md` enhancements applied
 
-To complete: Manually update `agents/actions/validate.md` with the enhanced checklists from this document.
+No additional manual sync is required for `agents/actions/validate.md`.
 
 ---
 

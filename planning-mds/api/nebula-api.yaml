@@ -13,6 +13,9 @@ paths:
     get:
       operationId: listBrokers
       summary: List brokers
+      parameters:
+        - $ref: "#/components/parameters/BrokerSearchQuery"
+        - $ref: "#/components/parameters/BrokerStatusFilter"
       responses:
         "200":
           description: Broker list
@@ -50,6 +53,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /api/brokers/{brokerId}:
     parameters:
@@ -312,6 +317,25 @@ components:
       scheme: bearer
       bearerFormat: JWT
   parameters:
+    BrokerSearchQuery:
+      name: q
+      in: query
+      required: false
+      description: Case-insensitive search query. Leading and trailing spaces are trimmed.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+    BrokerStatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Optional broker status filter.
+      schema:
+        type: string
+        enum:
+          - Active
+          - Inactive
     BrokerId:
       name: brokerId
       in: path
@@ -339,48 +363,74 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/ProblemDetails"
     Unauthorized:
       description: Authentication required or invalid token
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/ProblemDetails"
     Forbidden:
       description: Authenticated but not allowed
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/ProblemDetails"
     NotFound:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/ProblemDetails"
     Conflict:
       description: Conflict with current state (for example invalid transition)
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/ProblemDetails"
   schemas:
-    ErrorResponse:
+    ProblemDetails:
       type: object
-      description: Standard API error payload.
+      description: RFC 7807 problem details payload with Nebula-specific extension fields.
       required:
+        - type
+        - title
+        - status
         - code
-        - message
+        - traceId
       properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference that identifies the problem type.
+        title:
+          type: string
+          description: Short, human-readable summary of the problem.
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          description: HTTP status code generated for this problem instance.
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence.
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying this specific occurrence.
         code:
           type: string
-        message:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
+          description: Stable machine-readable domain error code.
         traceId:
           type: string
+          description: Correlation identifier for diagnostics and tracing.
+        errors:
+          type: object
+          description: Optional validation error map keyed by field.
+          additionalProperties:
+            type: array
+            items:
+              type: string
 
     Broker:
       type: object

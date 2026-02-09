@@ -33,3 +33,15 @@ Yes, but keep them generic. Put project-specific notes and requirements in `plan
 ## What if my agents need different workflows?
 
 Adapt the `SKILL.md` files, but keep them reusable across similar projects. Use `planning-mds/` for project-specific variations.
+
+## Does this repo include an automated orchestrator right now?
+
+No. The initial public preview is human-orchestrated. A human operator runs actions and gates from the documented contracts.
+
+## How do I execute the framework in manual mode?
+
+Use `docs/MANUAL-ORCHESTRATION-RUNBOOK.md`. It defines required evidence capture for approvals, gate decisions, and artifact traceability.
+
+## How do I know if the repo is complete enough for preview release?
+
+Use `docs/PREVIEW-RELEASE-CHECKLIST.md` and ensure every required item is checked before tagging a public preview.

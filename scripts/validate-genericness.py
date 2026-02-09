@@ -7,9 +7,9 @@ Pulls the blocked term list from the domain glossary — no hardcoded
 terms in this script.
 
 Usage:
-    python validate-genericness.py [--glossary <path>] [--agents-dir <path>]
-    python validate-genericness.py
-    python validate-genericness.py --glossary planning-mds/domain/insurance-glossary.md
+    python3 validate-genericness.py [--glossary <path>] [--agents-dir <path>]
+    python3 validate-genericness.py
+    python3 validate-genericness.py --glossary planning-mds/domain/glossary.md
 """
 
 import sys
@@ -60,9 +60,63 @@ def extract_blocked_terms(glossary_path: str) -> list:
     return terms
 
 
+def expand_term_variants(term: str) -> set:
+    """
+    Expand a blocked term to include a basic plural/inflection variant.
+
+    Examples:
+    - broker -> brokers
+    - submission -> submissions
+    - policy -> policies
+    """
+    base = term.lower().strip()
+    variants = {base}
+
+    # Only apply inflection logic to simple alphabetic terms.
+    if not re.fullmatch(r'[a-z]+', base):
+        return variants
+
+    if base.endswith('y') and len(base) > 1 and base[-2] not in 'aeiou':
+        variants.add(base[:-1] + 'ies')
+    elif base.endswith(('s', 'x', 'z', 'ch', 'sh')):
+        variants.add(base + 'es')
+    else:
+        variants.add(base + 's')
+
+    return variants
+
+
+def canonicalize_matched_term(term: str, blocked_term_set: set) -> str:
+    """
+    Normalize a matched token to the base blocked term when it appears in a
+    plural/inflected form.
+    """
+    word = term.lower()
+    if word in blocked_term_set:
+        return word
+
+    if word.endswith('ies'):
+        candidate = word[:-3] + 'y'
+        if candidate in blocked_term_set:
+            return candidate
+
+    if word.endswith('es'):
+        candidate = word[:-2]
+        if candidate in blocked_term_set:
+            return candidate
+
+    if word.endswith('s'):
+        candidate = word[:-1]
+        if candidate in blocked_term_set:
+            return candidate
+
+    return word
+
+
 def scan_directory(agents_dir: str, terms: list) -> list:
     """
-    Scan agents/ for occurrences of blocked terms (case-insensitive, word-boundary).
+    Scan agents/ for occurrences of blocked terms (case-insensitive, word-boundary),
+    including basic plural/inflected variants.
     Returns list of (filepath, line_number, line_content) tuples.
     """
     agents_path = Path(agents_dir)
@@ -70,29 +124,44 @@ def scan_directory(agents_dir: str, terms: list) -> list:
         print(f"[ERROR] Directory not found: {agents_dir}")
         return []
 
-    # Case-insensitive word-boundary pattern
+    blocked_terms = sorted({term.lower().strip() for term in terms if term.strip()})
+    blocked_term_set = set(blocked_terms)
+    pattern_terms = sorted(
+        {variant for term in blocked_terms for variant in expand_term_variants(term)},
+        key=len,
+        reverse=True,
+    )
+
+    # Case-insensitive word-boundary pattern.
     pattern = re.compile(
-        r'\b(' + '|'.join(re.escape(t) for t in terms) + r')\b',
+        r'\b(' + '|'.join(re.escape(t) for t in pattern_terms) + r')\b',
         re.IGNORECASE
     )
 
     # Files explicitly allowed to contain blocked terms
     skip_files = {'TECH-STACK-ADAPTATION.md'}
 
-    # Phrases that make a blocked-term match a legitimate false positive.
-    # If ANY of these substrings appears in a line (case-insensitive), skip it.
-    exception_phrases = [
-        'pact broker',              # Pact Broker = contract-testing tool
-        'form submission',          # generic web concept
-        'content security policy',  # web security standard (CSP)
-        'casbin policy',            # authorization policy (Casbin)
-        'abac policy',              # authorization policy
-        'policy file',              # Casbin policy file
-        'policy matches',           # authorization rule evaluation
-        'pseudo-policy',            # generic auth example
-        'policy examples',          # generic auth documentation
-        'token renewal',            # OAuth token refresh
-    ]
+    # Term-scoped exception rules for legitimate generic usage.
+    # Each blocked term has to be covered by an explicit rule to skip a line.
+    term_exception_patterns = {
+        'broker': [
+            re.compile(r'\bpact broker\b', re.IGNORECASE),
+            re.compile(r'\bmessage broker\b', re.IGNORECASE),
+        ],
+        'submission': [
+            re.compile(r'\bform submission\b', re.IGNORECASE),
+        ],
+        'renewal': [
+            re.compile(r'\btoken renewal\b', re.IGNORECASE),
+        ],
+        'claim': [
+            re.compile(r'\bnew\s+claim\s*\(', re.IGNORECASE),
+            re.compile(r'\bclaim\s*\(', re.IGNORECASE),
+            re.compile(r'\bjwt\s+claims?\b', re.IGNORECASE),
+            re.compile(r'\btoken\s+claims?\b', re.IGNORECASE),
+            re.compile(r'\bidentity\s+claims?\b', re.IGNORECASE),
+        ],
+    }
 
     # Scan all text files in agents/
     extensions = {'.md', '.py', '.sh', '.yaml', '.yml'}
@@ -114,11 +183,28 @@ def scan_directory(agents_dir: str, terms: list) -> list:
             continue
 
         for line_num, line in enumerate(lines, start=1):
-            if pattern.search(line):
-                line_lower = line.lower()
-                if any(ep in line_lower for ep in exception_phrases):
-                    continue
-                violations.append((str(file_path), line_num, line.strip()))
+            matches = list(pattern.finditer(line))
+            if not matches:
+                continue
+
+            matched_terms = {
+                canonicalize_matched_term(m.group(0), blocked_term_set)
+                for m in matches
+            }
+            all_terms_exempted = True
+
+            # Boundary gate must remain strict: only skip when each matched
+            # blocked term is explicitly exempted by a scoped regex rule.
+            for term in matched_terms:
+                term_rules = term_exception_patterns.get(term, [])
+                if not any(rule.search(line) for rule in term_rules):
+                    all_terms_exempted = False
+                    break
+
+            if all_terms_exempted:
+                continue
+
+            violations.append((str(file_path), line_num, line.strip()))
 
     return violations
 
@@ -131,7 +217,7 @@ def main():
     )
     parser.add_argument(
         '--glossary',
-        default='planning-mds/domain/insurance-glossary.md',
+        default='planning-mds/domain/glossary.md',
         help='Path to domain glossary (extracts blocked terms)'
     )
     parser.add_argument(
@@ -140,6 +226,14 @@ def main():
         help='Path to agents directory to scan'
     )
     args = parser.parse_args()
+
+    # Backward compatibility for older repos before glossary path normalization.
+    if (
+        args.glossary == 'planning-mds/domain/glossary.md'
+        and not Path(args.glossary).exists()
+        and Path('planning-mds/domain/insurance-glossary.md').exists()
+    ):
+        args.glossary = 'planning-mds/domain/insurance-glossary.md'
 
     print(f"Validating genericness of {args.agents_dir}/")
     print("-" * 60)

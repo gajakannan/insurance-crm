@@ -5,16 +5,19 @@ API Contract Validation Script
 Validates OpenAPI specifications for completeness and consistency.
 
 Usage:
-    python validate-api-contract.py <path-to-openapi-yaml>
-    python validate-api-contract.py planning-mds/api/example-api.yaml
+    python3 validate-api-contract.py <path-to-openapi-yaml>
+    python3 validate-api-contract.py planning-mds/api/example-api.yaml
 """
 
 import sys
 import yaml
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, List, Tuple
 
 class ApiContractValidator:
+    ERROR_SCHEMA_NAME = 'ProblemDetails'
+    ERROR_SCHEMA_REF = '#/components/schemas/ProblemDetails'
+
     def __init__(self, file_path: str):
         self.file_path = Path(file_path)
         self.spec = None
@@ -133,8 +136,51 @@ class ApiContractValidator:
                 if '403' not in responses:
                     self.warnings.append(f"{method.upper()} {path}: Missing 403 Forbidden response")
 
+    def _resolve_local_ref(self, ref: str) -> Any:
+        """Resolve local OpenAPI refs like #/components/schemas/Thing."""
+        if not isinstance(ref, str) or not ref.startswith('#/'):
+            return None
+
+        node = self.spec
+        for token in ref[2:].split('/'):
+            if not isinstance(node, dict) or token not in node:
+                return None
+            node = node[token]
+        return node
+
+    def _extract_response_schema_ref(self, response: dict, context: str) -> str:
+        """Resolve response object and return application/json schema $ref."""
+        if not isinstance(response, dict):
+            self.errors.append(f"{context}: response must be an object")
+            return ''
+
+        response_object = response
+        if '$ref' in response:
+            response_object = self._resolve_local_ref(response['$ref'])
+            if not isinstance(response_object, dict):
+                self.errors.append(f"{context}: invalid response reference {response['$ref']}")
+                return ''
+
+        content = response_object.get('content', {})
+        json_content = content.get('application/json')
+        if not isinstance(json_content, dict):
+            self.errors.append(f"{context}: error responses must define application/json content")
+            return ''
+
+        schema = json_content.get('schema')
+        if not isinstance(schema, dict):
+            self.errors.append(f"{context}: error responses must define a schema")
+            return ''
+
+        schema_ref = schema.get('$ref')
+        if not schema_ref:
+            self.errors.append(f"{context}: error responses must reference {self.ERROR_SCHEMA_REF}")
+            return ''
+
+        return schema_ref
+
     def check_error_contract(self):
-        """Check for consistent error response schema."""
+        """Check for canonical RFC 7807 ProblemDetails schema and usage."""
         if 'components' not in self.spec:
             self.warnings.append("Missing components section - define reusable schemas")
             return
@@ -145,16 +191,58 @@ class ApiContractValidator:
 
         schemas = self.spec['components']['schemas']
 
-        # Check for ErrorResponse schema
-        if 'ErrorResponse' not in schemas:
-            self.errors.append("Missing ErrorResponse schema - all APIs should have consistent error format")
-        else:
-            error_schema = schemas['ErrorResponse']
-            required_fields = ['code', 'message']
-            if 'properties' in error_schema:
-                for field in required_fields:
-                    if field not in error_schema['properties']:
-                        self.errors.append(f"ErrorResponse missing required field: {field}")
+        if 'ErrorResponse' in schemas:
+            self.errors.append(
+                "Found legacy ErrorResponse schema - use canonical ProblemDetails schema only"
+            )
+
+        if self.ERROR_SCHEMA_NAME not in schemas:
+            self.errors.append(
+                f"Missing {self.ERROR_SCHEMA_NAME} schema - all APIs should use RFC 7807 format"
+            )
+            return
+
+        error_schema = schemas[self.ERROR_SCHEMA_NAME]
+        properties = error_schema.get('properties', {})
+        required_fields = set(error_schema.get('required', []))
+
+        required_properties = ['type', 'title', 'status', 'code', 'traceId']
+        for field in required_properties:
+            if field not in properties:
+                self.errors.append(f"{self.ERROR_SCHEMA_NAME} missing required property: {field}")
+
+        required_presence = ['type', 'title', 'status']
+        for field in required_presence:
+            if field not in required_fields:
+                self.errors.append(f"{self.ERROR_SCHEMA_NAME} should require field: {field}")
+
+        # Every operation-level 4xx/5xx response should reference ProblemDetails.
+        paths = self.spec.get('paths', {})
+        for path, methods in paths.items():
+            if not isinstance(methods, dict):
+                continue
+
+            for method, operation in methods.items():
+                if method not in ['get', 'post', 'put', 'patch', 'delete']:
+                    continue
+                if not isinstance(operation, dict):
+                    continue
+
+                responses = operation.get('responses', {})
+                if not isinstance(responses, dict):
+                    continue
+
+                for status_code, response in responses.items():
+                    status_str = str(status_code)
+                    if not status_str or status_str[0] not in {'4', '5'}:
+                        continue
+
+                    context = f"{method.upper()} {path} {status_str}"
+                    schema_ref = self._extract_response_schema_ref(response, context)
+                    if schema_ref and schema_ref != self.ERROR_SCHEMA_REF:
+                        self.errors.append(
+                            f"{context}: expected {self.ERROR_SCHEMA_REF}, found {schema_ref}"
+                        )
 
     def check_security(self):
         """Check security definitions."""
@@ -179,8 +267,8 @@ class ApiContractValidator:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python validate-api-contract.py <openapi-yaml-file>")
-        print("Example: python validate-api-contract.py planning-mds/api/example-api.yaml")
+        print("Usage: python3 validate-api-contract.py <openapi-yaml-file>")
+        print("Example: python3 validate-api-contract.py planning-mds/api/example-api.yaml")
         sys.exit(1)
 
     file_path = sys.argv[1]

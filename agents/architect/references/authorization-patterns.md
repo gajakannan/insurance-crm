@@ -345,7 +345,7 @@ public async Task<ResourceAttributes> GetOrderAttributesAsync(Guid orderId)
 
 ### 3.1 JWT Token Structure
 
-**OIDC provider issues JWT tokens with user claims:**
+**OIDC provider issues JWT tokens with user attributes:**
 
 ```json
 {

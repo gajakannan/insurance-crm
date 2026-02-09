@@ -122,7 +122,7 @@ Phase B (Architect/Tech Lead Mode)
 
 Phase C (Implementation Mode)
   └─ build action    → Architect (orchestration) → (Backend Developer + Frontend Developer + AI Engineer* + DevOps + Quality Engineer)
-  └─ feature action  → Architect (orchestration) → (Backend Developer + Frontend Developer + AI Engineer* + Quality Engineer)
+  └─ feature action  → Architect (orchestration) → (Backend Developer + Frontend Developer + AI Engineer* + Quality Engineer + DevOps)
   └─ review action   → Code Reviewer + Security
   └─ test action     → Quality Engineer
   └─ document action → Technical Writer
@@ -142,7 +142,7 @@ Product Manager → Architect → Backend Developer
 ### Parallel Flow Pattern
 When agents can work independently on different aspects:
 ```
-Backend Developer + Frontend Developer + AI Engineer + Quality Engineer
+Backend Developer + Frontend Developer + AI Engineer + Quality Engineer + DevOps
 ```
 
 ### Mixed Flow Pattern

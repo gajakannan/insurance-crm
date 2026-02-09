@@ -6,9 +6,9 @@ Validates architecture specifications in INCEPTION.md for completeness.
 Pulls the entity list from the domain glossary.
 
 Usage:
-    python validate-architecture.py <path-to-inception-md> [glossary-file]
-    python validate-architecture.py planning-mds/INCEPTION.md
-    python validate-architecture.py planning-mds/INCEPTION.md planning-mds/domain/insurance-glossary.md
+    python3 validate-architecture.py <path-to-inception-md> [glossary-file]
+    python3 validate-architecture.py planning-mds/INCEPTION.md
+    python3 validate-architecture.py planning-mds/INCEPTION.md planning-mds/domain/glossary.md
 """
 
 import sys
@@ -272,12 +272,18 @@ class ArchitectureValidator:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python validate-architecture.py <inception-md-file> [glossary-file]")
-        print("Example: python validate-architecture.py planning-mds/INCEPTION.md planning-mds/domain/insurance-glossary.md")
+        print("Usage: python3 validate-architecture.py <inception-md-file> [glossary-file]")
+        print("Example: python3 validate-architecture.py planning-mds/INCEPTION.md planning-mds/domain/glossary.md")
         sys.exit(1)
 
     file_path = sys.argv[1]
-    glossary_path = sys.argv[2] if len(sys.argv) > 2 else "planning-mds/domain/insurance-glossary.md"
+    glossary_path = sys.argv[2] if len(sys.argv) > 2 else "planning-mds/domain/glossary.md"
+    if (
+        glossary_path == "planning-mds/domain/glossary.md"
+        and not Path(glossary_path).exists()
+        and Path("planning-mds/domain/insurance-glossary.md").exists()
+    ):
+        glossary_path = "planning-mds/domain/insurance-glossary.md"
 
     print(f"Validating architecture specification: {file_path}")
     print(f"Using glossary: {glossary_path}")

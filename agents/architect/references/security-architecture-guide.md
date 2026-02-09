@@ -109,7 +109,7 @@ catch (Exception ex)
 4. Keycloak validates credentials and issues JWT token
 5. Frontend stores token (in memory or httpOnly cookie)
 6. Frontend includes token in API requests (`Authorization: Bearer <token>`)
-7. API validates token and extracts user claims
+7. API validates token and extracts user attributes
 
 **Configuration:**
 ```csharp

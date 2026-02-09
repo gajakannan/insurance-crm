@@ -22,13 +22,21 @@ Thanks for contributing to this framework.
 Run at minimum:
 
 ```bash
-python scripts/validate-genericness.py
+python3 scripts/run-lifecycle-gates.py
 ```
+
+To inspect configured lifecycle stages and required gates:
+
+```bash
+python3 scripts/run-lifecycle-gates.py --list
+```
+
+Lifecycle stage and gate definitions are declared in `lifecycle-stage.yaml`.
 
 If your change touches scripts:
 
 ```bash
-python -m py_compile $(rg --files agents scripts | rg '\.py$')
+python3 -m py_compile $(rg --files agents scripts planning-mds | rg '\.py$')
 ```
 
 ## 4) Boundary Rules

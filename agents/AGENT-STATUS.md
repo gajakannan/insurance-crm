@@ -1,15 +1,30 @@
-# Agent Status (Template)
+# Agent Status
 
-This is a generic status template. Copy into project documentation and customize as needed.
-
-**Last Updated:** YYYY-MM-DD
+**Last Updated:** 2026-02-08
+**Scope:** Framework-level status for the reusable `agents/` directory.
 
 ## Completion Summary
 
-- Total Agents: [n]
-- Completed: [n]
-- In Progress: [n]
+- Total agents: 11
+- Complete: 11
+- In progress: 0
+
+## Status Snapshot
+
+- Product Manager: Complete
+- Architect: Complete
+- Backend Developer: Complete
+- Frontend Developer: Complete
+- AI Engineer: Complete
+- Quality Engineer: Complete
+- DevOps: Complete
+- Security: Complete
+- Code Reviewer: Complete
+- Technical Writer: Complete
+- Blogger: Complete
 
 ## Notes
 
-- Solution-specific status should live in `planning-mds/`.
+- Detailed role definitions and ownership remain in `agents/ROLES.md`.
+- This file is the concise status snapshot used for release/readiness communication.
+- Solution-specific delivery status should be tracked under `planning-mds/`.

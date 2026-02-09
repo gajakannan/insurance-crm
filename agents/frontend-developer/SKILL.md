@@ -201,8 +201,8 @@ experience/
 │   ├── features/            # Feature-specific modules
 │   │   ├── customers/
 │   │   ├── accounts/
-│   │   ├── submissions/
-│   │   └── renewals/
+│   │   ├── orders/
+│   │   └── tasks/
 │   ├── hooks/               # Custom React hooks
 │   ├── lib/                 # Utilities and helpers
 │   │   ├── api/             # API client functions

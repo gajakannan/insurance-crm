@@ -1,5 +1,9 @@
 # New Project Onboarding Checklist
 
+Initial preview mode note:
+- Human-orchestrated execution is the default for this release.
+- Use `docs/MANUAL-ORCHESTRATION-RUNBOOK.md` for required evidence capture.
+
 ## Step 1: Setup (15 minutes)
 
 - [ ] Clone repository
@@ -7,6 +11,8 @@
 - [ ] (Optional) Build/run the framework container: `docker build -t nebula-agent-builder .`
 - [ ] Review `inception-setup/README.md`
 - [ ] Understand `BOUNDARY-POLICY.md`
+- [ ] Review `docs/MANUAL-ORCHESTRATION-RUNBOOK.md`
+- [ ] Review `docs/PREVIEW-RELEASE-CHECKLIST.md`
 
 ## Step 2: Copy Framework (30 minutes)
 
@@ -32,6 +38,11 @@
 
 ## Validation
 
-- [ ] Run `python scripts/validate-genericness.py`
+- [ ] Review `lifecycle-stage.yaml` and confirm `current_stage` is correct
+- [ ] Run `python3 scripts/run-lifecycle-gates.py --list`
+- [ ] Run `python3 scripts/run-lifecycle-gates.py`
+- [ ] Run `python3 agents/product-manager/scripts/validate-stories.py planning-mds/stories`
+- [ ] (Optional strict mode) Run `python3 agents/product-manager/scripts/validate-stories.py --strict-warnings planning-mds/stories`
 - [ ] Verify no solution-specific content in `agents/`
+- [ ] Run `python3 scripts/validate-genericness.py`
 - [ ] Confirm all specs follow templates

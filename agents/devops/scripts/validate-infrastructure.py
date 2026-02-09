@@ -5,7 +5,7 @@ Infrastructure Validation Script
 Lightweight checks for common infra artifacts (compose files, Dockerfiles, env examples).
 
 Usage:
-    python validate-infrastructure.py [root-path] [--strict]
+    python3 validate-infrastructure.py [root-path] [--strict]
 """
 
 import argparse

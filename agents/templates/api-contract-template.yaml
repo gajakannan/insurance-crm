@@ -242,15 +242,40 @@ paths:
 
 components:
   schemas:
-    ErrorResponse:
+    ProblemDetails:
       type: object
+      description: RFC 7807 problem details payload with framework extension fields.
+      required:
+        - type
+        - title
+        - status
+        - code
+        - traceId
       properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
         code:
           type: string
-        message:
+        traceId:
           type: string
-        details:
+        errors:
           type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
 
     PaginationMeta:
       type: object
@@ -268,34 +293,34 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     Unauthorized:
       description: Missing or invalid credentials
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     Forbidden:
       description: Not authorized
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     NotFound:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     Conflict:
       description: Conflict (duplicate or invalid state)
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     InternalServerError:
       description: Unexpected server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'

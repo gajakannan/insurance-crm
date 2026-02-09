@@ -164,7 +164,9 @@ Run what exists in `agents/security/scripts/`:
 
 ```bash
 # Planning artifact audit
-python agents/security/scripts/security-audit.py planning-mds/security
+python3 agents/security/scripts/security-audit.py planning-mds/security
+# Strict artifact gate (implementation/release stages)
+python3 agents/security/scripts/security-audit.py planning-mds/security --strict
 
 # Security scan wrappers
 sh agents/security/scripts/check-secrets.sh
@@ -346,7 +348,7 @@ cat agents/security/SKILL.md
 cat planning-mds/INCEPTION.md
 
 # 2) Validate baseline security planning artifacts
-python agents/security/scripts/security-audit.py planning-mds/security
+python3 agents/security/scripts/security-audit.py planning-mds/security
 
 # 3) Run review action workflow as needed
 cat agents/actions/review.md

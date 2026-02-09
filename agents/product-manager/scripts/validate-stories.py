@@ -6,14 +6,16 @@ Validates user stories for completeness and quality.
 Checks that stories follow the template and have all required sections.
 
 Usage:
-    python validate-stories.py <file-or-dir> [<file-or-dir> ...]
-    python validate-stories.py planning-mds/stories/
-    python validate-stories.py planning-mds/stories/*.md
+    python3 validate-stories.py <file-or-dir> [<file-or-dir> ...]
+    python3 validate-stories.py planning-mds/stories/
+    python3 validate-stories.py planning-mds/stories/*.md
+    python3 validate-stories.py --strict-warnings planning-mds/stories/
 """
 
 import sys
 import io
 import re
+import argparse
 from pathlib import Path
 
 # Windows cp1252 stdout can't encode emojis used in report output.
@@ -22,7 +24,15 @@ if hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 if hasattr(sys.stderr, 'buffer'):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-from typing import List, Dict, Tuple, Iterable
+from typing import List, Tuple, Iterable
+
+
+STRICT_WARNING_PREFIXES = (
+    "Acceptance criteria contain vague terms:",
+    "No edge cases or error scenarios documented",
+    "No permission/authorization checks documented",
+    "Story involves data mutation but has no audit/timeline requirements",
+)
 
 class StoryValidator:
     def __init__(self, file_path: str):
@@ -40,7 +50,7 @@ class StoryValidator:
             self.errors.append(f"Failed to read file: {e}")
             return False
 
-    def validate(self) -> Tuple[bool, List[str], List[str]]:
+    def validate(self, strict_warnings: bool = False) -> Tuple[bool, List[str], List[str]]:
         """
         Validate story completeness and quality.
         Returns (is_valid, errors, warnings)
@@ -66,8 +76,24 @@ class StoryValidator:
         self.check_invest_criteria()
         self.check_acceptance_criteria_quality()
 
+        if strict_warnings:
+            self.promote_key_warnings_to_errors()
+
         is_valid = len(self.errors) == 0
         return is_valid, self.errors, self.warnings
+
+    def promote_key_warnings_to_errors(self):
+        """
+        Promote high-impact quality warnings to errors in strict mode.
+        This keeps default behavior lenient while allowing stricter CI/pipeline usage.
+        """
+        retained_warnings = []
+        for warning in self.warnings:
+            if any(warning.startswith(prefix) for prefix in STRICT_WARNING_PREFIXES):
+                self.errors.append(f"[strict-warning] {warning}")
+            else:
+                retained_warnings.append(warning)
+        self.warnings = retained_warnings
 
     def check_user_story_format(self):
         """Check for 'As a...I want...So that...' format."""
@@ -259,12 +285,20 @@ def collect_story_files(paths: Iterable[str]) -> Tuple[List[Path], List[str]]:
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python validate-stories.py <file-or-dir> [<file-or-dir> ...]")
-        print("Example: python validate-stories.py planning-mds/stories/")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Validate user story files for completeness and quality")
+    parser.add_argument(
+        "--strict-warnings",
+        action="store_true",
+        help="Promote key quality warnings (testability/security/audit gaps) to errors",
+    )
+    parser.add_argument(
+        "paths",
+        nargs="+",
+        help="Story files or directories to validate",
+    )
+    args = parser.parse_args()
 
-    story_files, path_errors = collect_story_files(sys.argv[1:])
+    story_files, path_errors = collect_story_files(args.paths)
 
     if path_errors:
         for error in path_errors:
@@ -278,12 +312,15 @@ def main():
     total_errors = 0
     total_warnings = 0
 
+    if args.strict_warnings:
+        print("Strict warning mode enabled: key warnings will fail validation.\n")
+
     for file_path in story_files:
         print(f"Validating story: {file_path}")
         print("-" * 60)
 
         validator = StoryValidator(str(file_path))
-        is_valid, errors, warnings = validator.validate()
+        is_valid, errors, warnings = validator.validate(strict_warnings=args.strict_warnings)
 
         if errors:
             print("\n❌ ERRORS (Must Fix):")

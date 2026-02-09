@@ -187,13 +187,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ProblemDetails'
               examples:
                 validationError:
                   value:
-                    code: "VALIDATION_ERROR"
-                    message: "Invalid request data"
-                    details:
+                    type: "https://api.nebula.example/errors/validation"
+                    title: "Validation failed"
+                    status: 400
+                    code: "validation_error"
+                    detail: "Invalid request data"
+                    errors:
                       - field: "licenseNumber"
                         message: "License number is required"
         '403':
@@ -201,19 +204,22 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ProblemDetails'
         '409':
           description: Conflict - duplicate license number
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ProblemDetails'
               examples:
                 duplicateLicense:
                   value:
-                    code: "DUPLICATE_LICENSE"
-                    message: "A broker with this license number already exists"
-                    details:
+                    type: "https://api.nebula.example/errors/duplicate-license"
+                    title: "Duplicate broker license"
+                    status: 409
+                    code: "duplicate_license"
+                    detail: "A broker with this license number already exists"
+                    errors:
                       - field: "licenseNumber"
                         message: "License number CA-12345 is already in use"
 
@@ -307,7 +313,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ProblemDetails'
 
     put:
       summary: Update broker
@@ -452,17 +458,30 @@ components:
         internalNotes:
           type: string
 
-    ErrorResponse:
+    ProblemDetails:
       type: object
-      required: [code, message]
+      required: [type, title, status, code]
       properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifier for the error category
+        title:
+          type: string
+          description: Short, human-readable error summary
+        status:
+          type: integer
+          description: HTTP status code for this error
         code:
           type: string
           description: Machine-readable error code
-        message:
+        traceId:
           type: string
-          description: Human-readable error message
-        details:
+          description: Correlation identifier for diagnostics
+        detail:
+          type: string
+          description: Optional detailed explanation
+        errors:
           type: array
           items:
             type: object

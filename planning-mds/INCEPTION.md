@@ -284,8 +284,8 @@ Renewal workflow transitions:
 - Quoted -> Bound or Lapsed
 
 Transition rules and validations:
-- Invalid transition pairs return HTTP 409 with ErrorResponse code `invalid_transition`.
-- Missing required checklist/data preconditions return HTTP 409 with ErrorResponse code `missing_transition_prerequisite`.
+- Invalid transition pairs return HTTP 409 with `ProblemDetails` (`code=invalid_transition`).
+- Missing required checklist/data preconditions return HTTP 409 with `ProblemDetails` (`code=missing_transition_prerequisite`).
 - Subject must have permission for the requested transition action (otherwise HTTP 403).
 - Every successful transition appends:
   - one WorkflowTransition record
@@ -340,7 +340,7 @@ MVP endpoint pattern examples:
 - POST `/api/renewals/{renewalId}/transitions`
 
 Error contract:
-- All non-success responses return `ErrorResponse` with at least `code`, `message`, optional `details`, and `traceId`.
+- All non-success responses return RFC 7807 `ProblemDetails` with `type`, `title`, `status`, plus extension fields `code`, `traceId`, and optional `detail`/`errors`.
 
 ### 4.6 Observability + NFRs
 
@@ -375,7 +375,7 @@ Scalability:
 
 ## 5) Phase C — Implementation Plan (locked order)
 
-We will implement progressively over 4–5 weeks, starting with Phase 0 foundation by Jan 30.
+Implementation should proceed in staged increments. Start Phase 0 foundation when lifecycle stage transitions to `implementation` in `lifecycle-stage.yaml`; track calendar commitments in project-specific execution plans rather than this baseline spec.
 
 ### Phase 0 Foundation — required components
 
@@ -404,15 +404,9 @@ Definition of Done for Phase 0:
 
 ---
 
-## 6) Immediate Next Step
+## 6) Next Step Guidance
 
-AI: We are currently in Phase A (PM/BA Mode).
-Start by asking me the smallest set of questions needed to fill in sections 3.1–3.5.
+Drive the next action from the declared lifecycle stage in `lifecycle-stage.yaml`:
 
-Then propose a first-pass draft of:
-
-- Vision
-- Non-goals
-- Personas
-- Epics
-- MVP stories with acceptance criteria (Broker vertical slice)
+- If stage is `framework-bootstrap` or `planning`: ask the smallest set of questions needed to complete sections 3.1–3.5, then propose a first-pass draft of Vision, Non-goals, Personas, Epics, and MVP stories.
+- If stage is `implementation` or `release-readiness`: use approved planning and architecture artifacts to execute implementation/review actions and collect gate evidence.

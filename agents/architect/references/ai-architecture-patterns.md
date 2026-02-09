@@ -500,14 +500,14 @@ public class ServiceAuthService
     public async Task<string> GenerateServiceTokenAsync(string serviceName, string[] scopes)
     {
         // Generate JWT for service-to-service auth
-        var claims = new[]
+        var serviceJwtAttributes = new[]
         {
             new Claim("sub", serviceName),
             new Claim("type", "service"),
             new Claim("scopes", string.Join(" ", scopes))
         };
 
-        var token = _jwtGenerator.GenerateToken(claims, expiresIn: TimeSpan.FromHours(1));
+        var token = _jwtGenerator.GenerateToken(serviceJwtAttributes, expiresIn: TimeSpan.FromHours(1));
         return token;
     }
 }

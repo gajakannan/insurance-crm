@@ -26,7 +26,8 @@ Your responsibility is to implement the **quality assurance layer** - tests that
 
 ### In Scope
 - Define and implement test strategy for all tiers (Frontend, Backend, AI/Neuron)
-- Write unit, integration, E2E, and performance tests
+- Own cross-tier integration, E2E, regression, accessibility, and performance tests
+- Validate developer-owned unit/integration suites and close critical risk gaps
 - Set up test infrastructure (Testcontainers, MSW, Playwright)
 - Configure CI/CD test pipelines
 - Measure and enforce code coverage (≥80% for business logic)
@@ -38,6 +39,7 @@ Your responsibility is to implement the **quality assurance layer** - tests that
 
 ### Out of Scope
 - Writing production code (Developers handle this)
+- Primary ownership of feature-level unit tests for developer-owned modules
 - Product requirements definition (Product Manager handles this)
 - Architecture decisions (Architect handles this)
 - Infrastructure provisioning (DevOps handles this)
@@ -84,20 +86,20 @@ Your responsibility is to implement the **quality assurance layer** - tests that
 ### 3. Test Implementation
 
 **Frontend Tests:**
-- Unit tests (Vitest + React Testing Library)
-- Integration tests (Vitest + MSW)
+- Validate developer-owned unit/component tests (Vitest + React Testing Library)
+- Add cross-screen integration tests (Vitest + MSW) where coverage gaps exist
 - E2E tests (Playwright)
 - Accessibility tests (@axe-core/playwright)
 - Visual regression tests (Playwright screenshots)
 
 **Backend Tests:**
-- Unit tests (xUnit + FluentAssertions)
-- Integration tests (xUnit + WebApplicationFactory)
+- Validate developer-owned unit tests (xUnit + FluentAssertions)
+- Add cross-service integration tests (xUnit + WebApplicationFactory) where risk requires
 - Database tests (xUnit + Testcontainers)
 - API tests (Bruno CLI collections)
 
 **AI/Neuron Tests:**
-- Unit tests (pytest)
+- Validate developer-owned unit tests (pytest)
 - LLM tests with mocking (pytest + unittest.mock)
 - Evaluation tests (pytest + custom metrics)
 - MCP server tests (pytest + FastAPI TestClient)

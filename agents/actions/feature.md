@@ -2,14 +2,14 @@
 
 ## User Intent
 
-Build a single feature as a complete vertical slice (backend + frontend + tests) that can be deployed and tested independently. Ideal for incremental delivery.
+Build a single feature as a complete vertical slice (backend + frontend + tests + deployability checks) that can be deployed and tested independently. Ideal for incremental delivery.
 
 ## Agent Flow
 
 ```
 Architect (Implementation Orchestration)
   ↓
-(Backend Developer + Frontend Developer + AI Engineer [if AI scope] + Quality Engineer)
+(Backend Developer + Frontend Developer + AI Engineer [if AI scope] + Quality Engineer + DevOps)
   ↓ [Parallel Implementation]
 [SELF-REVIEW GATE: Each agent validates their work]
   ↓
@@ -22,7 +22,7 @@ Code Reviewer + Security
 Feature Complete
 ```
 
-**Flow Type:** Mixed (architect-led orchestration kickoff, parallel implementation, parallel code+security reviews, single approval gate; AI Engineer runs when feature includes AI scope)
+**Flow Type:** Mixed (architect-led orchestration kickoff, parallel implementation including deployability checks, parallel code+security reviews, single approval gate; AI Engineer runs when feature includes AI scope)
 
 ---
 
@@ -176,16 +176,32 @@ All stack-specific execution (compile/tests/scans) must run in application runti
    - Validate feature acceptance criteria coverage
    - Generate coverage report for feature code
 4. **Follow SOLUTION-PATTERNS.md:**
-   - ≥80% unit coverage
-   - Integration tests for all feature endpoints
+   - Developers own unit/component and endpoint integration tests
+   - QE validates coverage and closes critical cross-tier gaps
    - E2E tests for feature workflows
 5. **Outputs (feature-specific):**
    - Test plan for feature
    - E2E tests (happy path + errors)
    - Feature test coverage report
 
+#### 1e. DevOps (Feature Deployability Check)
+1. **Activate DevOps agent** by reading `agents/devops/SKILL.md`
+2. **Read context:**
+   - Feature assembly plan (`planning-mds/architecture/feature-assembly-plan.md`)
+   - Existing deployment artifacts (`docker-compose*.yml`, Dockerfiles, runtime configs)
+   - Feature-specific runtime requirements from backend/frontend/AI outputs
+3. **Execute responsibilities (feature-scoped):**
+   - Verify feature can run in application runtime containers without breaking existing services
+   - Update runtime/deployment configuration when feature introduces new dependencies
+   - Validate environment-variable contract updates for this feature
+   - Run feature-level container build/start smoke checks and capture evidence paths
+4. **Outputs (feature-specific):**
+   - Deployment/runtime config updates (if required)
+   - Feature deployability check summary with executed command evidence
+   - Updated env var documentation for new feature requirements
+
 **Completion Criteria for Step 1:**
-- [ ] All required agents completed feature implementation (Backend, Frontend, Quality, and AI Engineer if AI scope)
+- [ ] All required agents completed feature implementation (Backend, Frontend, Quality, DevOps, and AI Engineer if AI scope)
 - [ ] Feature code compiles/builds successfully in application runtime containers
 - [ ] No critical errors
 
@@ -226,6 +242,11 @@ Each agent validates their feature work:
    - [ ] Coverage adequate for feature code
    - [ ] All feature acceptance criteria testable
 
+5. **DevOps self-review:**
+   - [ ] Feature deployability checks executed in application runtime containers
+   - [ ] Runtime config/env-var changes documented and versioned
+   - [ ] No runtime orchestration regressions introduced by the feature
+
 **If any self-review fails:**
 - Agent fixes issues
 - Re-runs self-review
@@ -235,6 +256,7 @@ Each agent validates their feature work:
 - [ ] Architect confirms feature output matches Step 0 plan
 - [ ] All required agents pass self-review for feature
 - [ ] All feature tests passing in application runtime containers
+- [ ] Feature deployability evidence recorded by DevOps
 - [ ] Feature works end-to-end
 
 ---
@@ -519,6 +541,11 @@ Implementation:
     - [count] E2E tests passing
     - [percentage]% coverage for feature code
 
+  ✓ DevOps
+    - Feature deployability checks passed
+    - Runtime configuration updates verified
+    - Evidence paths recorded
+
   ✓ AI Engineer (if AI scope)
     - [count] AI workflows/prompts delivered
     - [count] AI tests passing
@@ -559,7 +586,7 @@ Feature delivered! ✓
 
 **Overall Feature Action Success:**
 - [ ] Feature assembly plan created and followed
-- [ ] Feature is complete vertical slice (backend + frontend + tests + AI when in scope)
+- [ ] Feature is complete vertical slice (backend + frontend + tests + DevOps deployability checks + AI when in scope)
 - [ ] All feature tests passing in application runtime containers
 - [ ] AI tests passing (if AI scope) in AI runtime container
 - [ ] Code review approved
@@ -586,7 +613,7 @@ Before running feature action:
 
 ### What Makes a Good Vertical Slice?
 
-1. **Complete:** Includes backend, frontend, tests, and AI layer changes when AI scope exists
+1. **Complete:** Includes backend, frontend, tests, deployability checks, and AI layer changes when AI scope exists
 2. **Deployable:** Can be released independently
 3. **Testable:** Has clear acceptance criteria
 4. **Small:** Can be completed in 2-5 days
@@ -641,6 +668,11 @@ Agent Runtime: "I'll implement the customer list feature as a vertical slice..."
     - E2E test: View customer list
     - E2E test: Navigate pages
     - Test plan for customer list
+
+  DevOps:
+    - Container smoke test for feature runtime
+    - Validate env var and compose changes
+    - Record deployability evidence
 
 [Step 2: Self-review - all pass]
 
@@ -710,5 +742,5 @@ Agent Runtime: "Feature complete!"
 - Prefer small, frequent features over large batches
 - Feature action ensures true vertical slicing discipline
 - Security review is part of the feature action (run `review` action separately for deeper audit scope when needed)
-- DevOps agent not included (assumes Docker setup already exists)
+- DevOps deployability check is included; use `build` action for broader infra redesign across multiple features
 - Critical findings block approval; high findings require explicit mitigation justification if approved

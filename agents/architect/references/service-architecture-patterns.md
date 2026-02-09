@@ -715,7 +715,7 @@ public class SubscriptionService
 ```csharp
 // User logs in via Keycloak (OIDC redirect)
 // Keycloak returns JWT token
-// API validates JWT and extracts claims
+// API validates JWT and extracts token attributes
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

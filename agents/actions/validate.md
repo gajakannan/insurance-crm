@@ -106,7 +106,7 @@ Architect (architecture validation) + Product Manager (requirements validation)
    - ❌ "Users can upload files" → ✅ "Users can upload PDF/PNG (max 10MB)"
    - ❌ "Secure authentication" → ✅ "JWT tokens, HTTPS only, session timeout 30min"
    - ❌ "Easy to use interface" → ✅ "3-click maximum to create customer"
-   - ❌ "Dashboard is intuitive" → ✅ "Dashboard shows: revenue chart, top 5 customers, recent submissions"
+   - ❌ "Dashboard is intuitive" → ✅ "Dashboard shows: revenue chart, top 5 customers, recent orders"
 
 6. **Validate screen specs are complete**
    - [ ] Each screen has: purpose, layout, key elements

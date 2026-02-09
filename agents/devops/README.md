@@ -27,8 +27,8 @@ cat planning-mds/INCEPTION.md
 
 Before application code exists (`engine/`, `experience/`, deploy manifests), infra validation is expected to report missing artifacts.
 
-- Non-strict check: `python agents/devops/scripts/validate-infrastructure.py .` (informational warnings)
-- Strict gate (for implementation phase): `python agents/devops/scripts/validate-infrastructure.py . --strict`
+- Non-strict check: `python3 agents/devops/scripts/validate-infrastructure.py .` (informational warnings)
+- Strict gate (for implementation phase): `python3 agents/devops/scripts/validate-infrastructure.py . --strict`
 
 ## Tech Stack (All Free & Open Source)
 

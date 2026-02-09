@@ -106,8 +106,8 @@ All stack-specific execution (compile/tests/scans) must run in application runti
    - Implement API endpoints per contracts
    - Write application services and business logic
    - Create repository implementations
-   - Write unit tests (≥80% coverage for business logic)
-   - Write integration tests (all API endpoints)
+   - Own and maintain backend unit tests (≥80% coverage for business logic)
+   - Own and maintain backend integration tests for implemented API endpoints
 4. **Follow SOLUTION-PATTERNS.md:**
    - Use Casbin ABAC for authorization
    - Create ActivityTimelineEvent for all mutations
@@ -158,21 +158,21 @@ All stack-specific execution (compile/tests/scans) must run in application runti
    - `planning-mds/architecture/SOLUTION-PATTERNS.md`
 3. **Execute responsibilities:**
    - Create test plan mapping stories to test cases
-   - Write unit tests for domain logic (support Backend Developer)
-   - Write integration tests for API endpoints
+   - Validate developer-owned unit/integration test coverage and identify risk gaps
+   - Add cross-tier integration tests when story-critical gaps remain
    - Write E2E tests for critical workflows
-   - Generate coverage reports
-   - Validate quality gates
+   - Generate coverage and quality-gate reports
+   - Publish quality recommendation with blocking/non-blocking issues
 4. **Follow SOLUTION-PATTERNS.md:**
+   - Developers own unit/component and service-level integration tests
+   - QE owns cross-tier integration, E2E, and regression validation
    - ≥80% unit coverage for business logic
-   - Integration tests for all endpoints
    - E2E tests for critical workflows
 5. **Outputs:**
    - Test plan document
-   - Unit test suites
-   - Integration test suites
-   - E2E test scenarios (Playwright)
-   - Coverage reports
+   - Test coverage gap analysis and remediation checklist
+   - Cross-tier integration and E2E test suites
+   - Coverage and quality-gate reports
 
 #### 1d. DevOps
 1. **Activate DevOps agent** by reading `agents/devops/SKILL.md`
@@ -294,10 +294,11 @@ Each agent validates their own work before proceeding to code review:
 
 3. **Quality Engineer self-review:**
    - [ ] Test plan complete
-   - [ ] All tests passing in application runtime containers
-   - [ ] Coverage reports generated
+   - [ ] Developer-owned unit/integration suites reviewed and gaps dispositioned
+   - [ ] Cross-tier integration and E2E tests passing in application runtime containers
+   - [ ] Coverage and quality-gate reports generated
    - [ ] Critical workflows have E2E tests
-   - [ ] Quality gates met
+   - [ ] Quality gate recommendation documented
 
 4. **DevOps self-review:**
    - [ ] Phase 1 complete: Code inspection summary documented
