@@ -1,0 +1,94 @@
+version: 1
+
+release_posture:
+  mode: public-preview-human-orchestrated
+  summary: >
+    Initial public release scope is framework validation with human orchestration.
+    CI success reflects required gates for current_stage only; strict implementation/release gates are expected later.
+
+current_stage: framework-bootstrap
+
+stages:
+  framework-bootstrap:
+    description: Framework scaffolding phase before solution implementation starts (active stage for the initial public preview).
+    required_gates:
+      - boundary_genericness
+      - infra_non_strict
+
+  planning:
+    description: Planning artifacts are being authored; implementation remains placeholder.
+    required_gates:
+      - boundary_genericness
+      - api_contract
+      - solution_contract
+      - infra_non_strict
+      - security_planning_light
+
+  implementation:
+    description: Application code/runtime is being built; strict operational/security gates apply.
+    required_gates:
+      - boundary_genericness
+      - api_contract
+      - solution_contract
+      - infra_strict
+      - security_planning_strict
+
+  release-readiness:
+    description: Public release hardening stage with strict gates and review evidence.
+    required_gates:
+      - boundary_genericness
+      - api_contract
+      - solution_contract
+      - infra_strict
+      - security_planning_strict
+
+gates:
+  boundary_genericness:
+    description: Prevent solution-specific leakage into generic framework agents.
+    command:
+      - python3
+      - scripts/validate-genericness.py
+
+  api_contract:
+    description: Validate OpenAPI structural and canonical error-contract rules.
+    command:
+      - python3
+      - agents/architect/scripts/validate-api-contract.py
+      - planning-mds/api/nebula-api.yaml
+
+  solution_contract:
+    description: Validate solution-specific story/API contract alignment.
+    command:
+      - python3
+      - planning-mds/testing/validate-nebula-api-contract.py
+      - planning-mds/api/nebula-api.yaml
+
+  infra_non_strict:
+    description: Informational infrastructure baseline checks during bootstrap/planning.
+    command:
+      - python3
+      - agents/devops/scripts/validate-infrastructure.py
+      - .
+
+  infra_strict:
+    description: Strict infrastructure gate for implementation/release stages.
+    command:
+      - python3
+      - agents/devops/scripts/validate-infrastructure.py
+      - .
+      - --strict
+
+  security_planning_light:
+    description: Ensure required security planning artifacts exist.
+    command:
+      - python3
+      - agents/security/scripts/security-audit.py
+      - planning-mds/security
+
+  security_planning_strict:
+    description: Enforce non-draft security artifacts and dated review evidence.
+    command:
+      - python3
+      - agents/security/scripts/security-audit.py
+      - planning-mds/security
+      - --strict
