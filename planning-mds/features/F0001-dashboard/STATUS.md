@@ -1,7 +1,7 @@
 # F0001 — Dashboard — Status
 
-**Overall Status:** In Progress
-**Last Updated:** 2026-03-02
+**Overall Status:** In Progress (Auth-boundary hardening deferred to F0009)
+**Last Updated:** 2026-03-05
 
 ## Story Checklist
 
@@ -12,3 +12,8 @@
 | F0001-S0003 | View My Tasks and Reminders | Done | Non-broker task click-through and "View all" link deferred per MVP constraints (F0003) |
 | F0001-S0004 | View Broker Activity Feed | Done | |
 | F0001-S0005 | View Nudge Cards | In Progress | Submission/Renewal CTAs deferred; backend nudge selection logic (priority ordering) needs verification |
+
+## Deferred To F0009
+
+- Dashboard access boundaries are currently authenticated-only in runtime paths; full role/tenant enforcement is tracked under F0009.
+- BrokerUser nudge visibility constraints (Broker-only scope and field boundary behavior) are tracked under F0009-S0004.
