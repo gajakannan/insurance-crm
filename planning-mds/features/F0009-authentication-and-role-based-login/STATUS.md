@@ -1,7 +1,7 @@
 # F0009 — Authentication + Role-Based Login — Status
 
 **Overall Status:** Draft (Requirements Refined)
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-05
 
 ## Story Checklist
 
@@ -31,6 +31,11 @@
 2. frontend still dependent on `dev-auth.ts` in default flow.
 3. backend query-layer scope + field filtering for BrokerUser not yet implemented in code.
 4. BrokerUser `broker_tenant_id` claim mapping + tenant resolution not yet implemented in code.
+
+## Coordination Notes
+
+- F0001/F0002/F0005 status docs now explicitly mark auth/scope/runtime enforcement items as deferred to F0009.
+- No cross-feature status entry should treat role/tenant enforcement as complete until F0009 stories are implemented and validated.
 
 ## Architecture-Ready Artifacts
 
