@@ -1,7 +1,7 @@
 # F0002 — Broker & MGA Relationship Management — Status
 
-**Overall Status:** In Progress
-**Last Updated:** 2026-03-08
+**Overall Status:** Done (MVP scope complete; deferred non-blocking hardening follow-ups tracked)
+**Last Updated:** 2026-03-09
 
 ## Story Checklist
 
@@ -15,7 +15,7 @@
 | F0002-S0006 | Manage Broker Contacts | Done | Casbin `contact:create|read|update|delete` checks enforced. `ContactDto` now exposes `RowVersion`. Frontend hook consumes paginated envelope; update flow sends `If-Match`. |
 | F0002-S0007 | View Broker Activity Timeline | Done | Casbin `timeline_event:read` check enforced. Paginated response (`page`, `pageSize`, `totalCount`, `totalPages`) implemented in backend and consumed by Broker 360 Timeline tab. "Unknown User" actor fallback applied via `MapToDto`. |
 | F0002-S0008 | Reactivate Broker | Done | Casbin `broker:reactivate` check enforced. OpenAPI path `/brokers/{brokerId}/reactivate` added to spec. Integration tests added. |
-| F0002-S0009 | Adopt Native Casbin Enforcer | Planned | Current authorization uses hand-rolled policy parser/evaluator. Replace with native Casbin enforcer per ADR-008. |
+| F0002-S0009 | Adopt Native Casbin Enforcer | Done | Replaced `PolicyAuthorizationService` with `CasbinAuthorizationService` using `Casbin.NET 2.19.2`. Model + policy loaded from embedded resources. 97 unit tests verify full policy matrix parity. |
 
 ## Resolved Gaps (2026-03-08)
 
@@ -26,12 +26,21 @@
 5. **OpenAPI reactivate path** — `POST /brokers/{brokerId}/reactivate` path added to `nebula-api.yaml` with correct responses (200, 403, 404, 409).
 6. **Tests** — Added: `BrokerAuthorizationTests` (10 Casbin 403 tests), `TimelineEndpointTests` (3 pagination tests), reactivation tests in `BrokerEndpointTests` (3 tests), contact paginated envelope + RowVersion tests in `ContactEndpointTests` (2 tests).
 
-## Open Items / Follow-ups
+## Resolved Gaps (2026-03-09 — S0009)
+
+7. **Native Casbin enforcer adopted** — `CasbinAuthorizationService` replaces `PolicyAuthorizationService`. Uses `Casbin.NET 2.19.2` with embedded `model.conf` + `policy.csv`. `IAuthorizationService` interface unchanged — zero endpoint modifications. DI binding switched in `DependencyInjection.cs`. Sentinel values prevent empty-string condition match (deny-by-default for task ownership when attrs are absent). 97 unit tests cover full broker/contact/timeline/task/dashboard policy matrix, condition-based ownership checks, ExternalUser deny-all, and unknown role/action/resource deny-by-default. ADR-008 status updated to Accepted.
+
+## Deferred Non-Blocking Follow-ups (Post-MVP Hardening)
+
+These items are intentionally deferred and do not block F0002 completion status.
 
 - UI-level action hiding (edit/deactivate/delete buttons hidden for unauthorized roles) deferred — requires frontend auth context integration; backend 403 responses prevent unauthorized mutations regardless.
 - Cross-broker ownership validation in contact service (contacts created with mismatched brokerId) deferred — existing validator checks broker existence but not requester scope boundary; scoped to future hardening sprint.
 - Integration test WSL environment limitation — `WebApplicationFactory` path resolution fails in `/mnt/c/` WSL paths; tests must be run from Windows or in a container. No C# compiler errors in test code.
-- Native Casbin adoption remains pending — current implementation still uses custom parser/evaluator logic in `PolicyAuthorizationService`; see F0002-S0009 and ADR-008.
+- `PolicyAuthorizationService.cs` retained in repo for reference but no longer registered in DI (no runtime use). Consider deleting or marking `[Obsolete]` to prevent accidental re-registration.
+- Add unit test for BrokerUser `task:read` — the only role with condition=`true` on task:read (no ownership check); currently untested in `CasbinAuthorizationServiceTests`. (Code Review H-1)
+- Consider in-memory Casbin initialization (`Model.CreateDefaultFromText()` + `StringAdapter`) to eliminate temp file writes during startup. (Code Review M-1)
+- Install `gitleaks` for automated secret scanning in CI — `check-secrets.sh` currently skips. (Security Review SL-2)
 
 ## Resolved (F0009 Complete)
 

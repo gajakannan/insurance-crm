@@ -121,7 +121,7 @@ public class BrokerEndpointTests(CustomWebApplicationFactory factory) : IClassFi
         get.StatusCode.Should().Be(HttpStatusCode.OK);
         var broker = await get.Content.ReadFromJsonAsync<BrokerDto>();
         broker!.Status.Should().Be("Inactive");
-        broker.IsDeleted.Should().BeTrue();
+        broker.IsDeactivated.Should().BeTrue();
     }
 
     // ── F0002-S0008: reactivation endpoint ─────────────────────────────────
@@ -139,7 +139,7 @@ public class BrokerEndpointTests(CustomWebApplicationFactory factory) : IClassFi
 
         var result = await response.Content.ReadFromJsonAsync<BrokerDto>();
         result!.Status.Should().Be("Active");
-        result.IsDeleted.Should().BeFalse();
+        result.IsDeactivated.Should().BeFalse();
     }
 
     [Fact]

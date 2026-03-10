@@ -1,12 +1,51 @@
-# Feature Assembly Plan (F0001 + F0002 + F0009)
+# Feature Assembly Plan (F0001 + F0002 + F0009 + F0010)
 
 **Owner:** Architect
 **Status:** Approved
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-03-08
 
 ## Goal
 
-Define the build order, role handoffs, and integration checkpoints for F0001 (Dashboard), F0002 (Broker Relationship Management), and F0009 (Authentication + Role-Based Login).
+Define the build order, role handoffs, and integration checkpoints for F0001 (Dashboard), F0002 (Broker Relationship Management), F0009 (Authentication + Role-Based Login), and F0010 (Dashboard Opportunities Refactor).
+
+---
+
+## F0010 — Dashboard Opportunities Refactor (Pipeline Board + Insight Views)
+
+### Dependencies
+- Existing dashboard opportunities widget shell and period controls
+- Opportunities summary data (`/dashboard/opportunities`)
+- Opportunities drilldown mini-card flow (`/dashboard/opportunities/{entityType}/{status}/items`)
+- ABAC policy coverage for `dashboard_pipeline` and related resources
+
+### Backend Assembly Steps
+1. Define/refine opportunities insights contracts required for:
+   - Pipeline Board default summary
+   - Aging Heatmap aggregates (status x bucket)
+   - Composition hierarchy aggregates (treemap/sunburst)
+2. Ensure aggregation responses remain ABAC-scoped before grouping and rollup.
+3. Keep drilldown contract compatibility for status-level mini-card access from all supported views.
+4. Add/update unit and integration tests for all opportunities data contracts in this feature.
+
+### Frontend Assembly Steps
+1. Make Pipeline Board the default opportunities view for Submissions and Renewals.
+2. Add view switcher: Pipeline / Heatmap / Treemap / Sunburst.
+3. Reuse consistent drilldown interaction model across supported views.
+4. Implement responsive behaviors for MacBook, iPad, and iPhone class breakpoints.
+5. Preserve widget-level error isolation and period selector state across view switches.
+
+### QA/Integration
+- Validate acceptance criteria for all F0010 stories.
+- Validate visual and interaction parity across breakpoints.
+- Validate ABAC scope and role boundaries for each view and drilldown path.
+- Validate non-blocking behavior for empty/error/loading states.
+
+### DevOps/Runtime
+- Confirm no new runtime dependencies are required.
+- Run containerized backend/frontend smoke checks with opportunities widget enabled.
+- Record deployability evidence in feature-level artifact.
+
+**Checkpoint F0010-A:** Opportunities widget defaults to Pipeline Board, optional insights render correctly, and drilldowns remain scoped and usable across breakpoints.
 
 ---
 
@@ -372,3 +411,106 @@ The card container `<div>` in `NudgeCard.tsx` receives `role="alert"` so screen 
 |------|----------|------------|
 | WorkflowTransition staleness query: submissions without any transitions use `CreatedAt` as fallback — may produce inaccurate staleness for very new submissions | Low | Acceptable for MVP; documented in code comment |
 | ABAC-scope for stale/upcoming: using `AssignedToUserId == userId` as the scope proxy rather than full Casbin per-row check | Medium | Per-row Casbin check is too expensive for a nudge aggregation query; `AssignedToUserId` is the established ownership pattern for tasks and is the correct approximation here |
+
+---
+
+## F0002-S0009 — Native Casbin Enforcer Adoption
+
+**Date:** 2026-03-08
+**Owner:** Backend Developer Agent
+**ADR:** `planning-mds/architecture/decisions/ADR-008-casbin-enforcer-adoption.md`
+
+### Context
+
+Stories S0001–S0008 are **Done**. The remaining work is S0009: replace the hand-rolled `PolicyAuthorizationService` with a native Casbin enforcer backed by `model.conf` + `policy.csv`. All existing endpoint authorization call sites (`HasAccessAsync` → `IAuthorizationService.AuthorizeAsync`) must continue to work unchanged. Frontend is unaffected — S0009 is a backend-internal change behind the existing `IAuthorizationService` interface.
+
+### Scope Breakdown
+
+| Layer | Required Work | Owner | Status |
+|-------|---------------|-------|--------|
+| Backend (`engine/`) | Replace `PolicyAuthorizationService` with `CasbinAuthorizationService`; add `Casbin.NET` NuGet; update DI; add startup validation; keep interface stable | Backend Developer | Planned |
+| Frontend (`experience/`) | **None** — authorization change is behind existing API; no contract changes | — | N/A |
+| AI (`neuron/`) | **None** | — | N/A |
+| Quality | Unit tests for Casbin service; integration tests for policy matrix parity; startup failure tests | Backend Developer + Quality Engineer | Planned |
+| DevOps/Runtime | Verify `policy.csv` + `model.conf` embedded resources resolve; no new infra dependencies | DevOps | Planned |
+
+### Implementation Slices (Dependency Order)
+
+#### Slice A — Safety Net (Baseline Tests)
+1. Review existing `BrokerAuthorizationTests` — currently tests no-role 403 only.
+2. Add positive authorization tests per role/action from `policy.csv` for F0002 resources:
+   - Broker: create, read, search, update, delete, reactivate — per role matrix.
+   - Contact: create, read, update, delete — per role matrix.
+   - Timeline: read — per role matrix.
+3. Add negative tests for denied actions (e.g., Underwriter cannot search brokers, RelationshipManager cannot delete brokers).
+4. These tests lock the **current expected behavior** before the switch.
+
+#### Slice B — Casbin Enforcer Implementation
+1. Add `Casbin.NET` NuGet package to `Nebula.Infrastructure.csproj`.
+2. Add `model.conf` as embedded resource in `Nebula.Infrastructure.csproj`.
+3. Create `CasbinAuthorizationService : IAuthorizationService` in `Nebula.Infrastructure/Authorization/`.
+4. Initialize Casbin `Enforcer` from embedded `model.conf` + `policy.csv` streams.
+5. Map `AuthorizeAsync(role, resourceType, action, attrs?)` to `Enforcer.Enforce(subObj, objObj, action)`:
+   - `subObj` = record with `Role = role`, `Id = attrs?["subjectId"]` (defaults to empty string if absent).
+   - `objObj` = record with `Type = resourceType`, `Assignee = attrs?["assignee"]` (defaults to empty string if absent).
+6. Fail fast on policy/model loading errors (throw `InvalidOperationException` at construction, not at first request).
+
+#### Slice C — DI Switch + Cleanup
+1. Update `DependencyInjection.cs`: replace `PolicyAuthorizationService` → `CasbinAuthorizationService`.
+2. Delete or rename `PolicyAuthorizationService.cs` (no runtime references remain).
+3. `IAuthorizationService` interface is **unchanged** — zero endpoint code changes.
+
+#### Slice D — Verification
+1. Run all existing integration tests to confirm behavioral parity.
+2. Run new positive/negative authorization matrix tests (Slice A).
+3. Add unit test for `CasbinAuthorizationService` directly — verify condition-based policies.
+4. Add startup failure test: corrupt model/policy → deterministic `InvalidOperationException`.
+5. Verify BrokerUser scope-isolation path is unaffected (remains query-layer; Casbin not consulted for BrokerUser fast-path).
+
+#### Slice E — Documentation + Status
+1. Update `F0002/STATUS.md` — mark S0009 Done with implementation evidence.
+2. Update `F0002/README.md` — mark S0009 Done.
+3. Update `ADR-008` status from Proposed → Accepted.
+
+### Key Design Decisions
+
+**Casbin Request Object Mapping:**
+The `model.conf` matcher uses structured sub-request access (`r.sub.role`, `r.obj.type`, `r.sub.id`, `r.obj.assignee`). The `CasbinAuthorizationService` passes C# objects to `Enforce()`:
+
+```
+Request:  Enforce({ Role: "Admin", Id: "" }, { Type: "broker", Assignee: "" }, "read")
+Matcher:  r.sub.role == p.sub && r.obj.type == p.obj && r.act == p.act && eval(p.cond)
+Policy:   p, Admin, broker, read, true
+Result:   true (condition "true" evals to true)
+```
+
+For condition-based policies (task ownership):
+```
+Request:  Enforce({ Role: "DistributionUser", Id: "abc-123" }, { Type: "task", Assignee: "abc-123" }, "read")
+Policy:   p, DistributionUser, task, read, r.obj.assignee == r.sub.id
+eval():   r.obj.assignee ("abc-123") == r.sub.id ("abc-123") → true
+```
+
+**Interface Stability:** `IAuthorizationService.AuthorizeAsync` signature is unchanged. Endpoint code requires zero modifications.
+
+**Singleton Lifecycle:** `CasbinAuthorizationService` remains singleton. The Casbin `Enforcer` is thread-safe for `Enforce()` calls.
+
+### Integration Checklist
+
+- [x] API contract compatibility validated — `IAuthorizationService` interface unchanged
+- [x] Frontend contract compatibility validated — no contract changes (backend-internal)
+- [ ] Test cases mapped to acceptance criteria — Slice A + D
+- [ ] Run/deploy instructions updated — no new infra; embedded resources only
+
+### Risks and Blockers
+
+| Item | Severity | Mitigation |
+|------|----------|------------|
+| Casbin .NET `eval()` behavior for condition expressions may differ from hand-rolled evaluator | Medium | Pre-switch matrix tests lock expected behavior; run both before and after switch |
+| Model.conf attribute access (`r.sub.role`) requires passing C# objects — Casbin .NET reflection may require specific property casing | Medium | Use concrete record types with matching property names; unit test verifies attribute access |
+| Embedded resource resolution for `model.conf` | Low | Same pattern as existing `policy.csv`; tested at startup with fail-fast |
+| WSL integration test path resolution (known limitation) | Low | Tests run from Windows or container; no new limitation |
+
+### Checkpoint
+
+**F0002-S0009-A:** All integration tests pass with native Casbin enforcer. Hand-rolled policy parser removed from runtime path. Behavioral parity confirmed.

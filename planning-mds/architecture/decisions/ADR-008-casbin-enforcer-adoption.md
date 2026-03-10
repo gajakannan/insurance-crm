@@ -1,8 +1,9 @@
 # ADR-008: Adopt Native Casbin Enforcer for Authorization
 
-**Status:** Proposed  
-**Date:** 2026-03-08  
-**Owners:** Platform / API Team  
+**Status:** Accepted
+**Date:** 2026-03-08
+**Accepted:** 2026-03-09
+**Owners:** Platform / API Team
 **Related Features:** F0002, F0009
 
 ## Context

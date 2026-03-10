@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Nebula.Application.Common;
 using Nebula.Application.Interfaces;
+using Nebula.Application.Services;
 using Nebula.Domain.Entities;
 
 namespace Nebula.Tests.Unit.BrokerScopeResolverTests;
@@ -43,7 +44,7 @@ public class BrokerScopeResolverTests
         var user = new StubCurrentUserService(brokerTenantId: "tenant-no-match");
         var resolver = new BrokerScopeResolver(repo);
 
-        var act = () => resolver.ResolveAsync(user);
+        Func<Task> act = async () => await resolver.ResolveAsync(user);
 
         await act.Should().ThrowAsync<BrokerScopeUnresolvableException>();
     }
@@ -56,7 +57,7 @@ public class BrokerScopeResolverTests
         var user = new StubCurrentUserService(brokerTenantId: "tenant-ambiguous");
         var resolver = new BrokerScopeResolver(repo);
 
-        var act = () => resolver.ResolveAsync(user);
+        Func<Task> act = async () => await resolver.ResolveAsync(user);
 
         await act.Should().ThrowAsync<BrokerScopeUnresolvableException>();
     }
@@ -72,7 +73,7 @@ public class BrokerScopeResolverTests
         var user = new StubCurrentUserService(brokerTenantId: null);
         var resolver = new BrokerScopeResolver(repo);
 
-        var act = () => resolver.ResolveAsync(user);
+        Func<Task> act = async () => await resolver.ResolveAsync(user);
 
         await act.Should().ThrowAsync<BrokerScopeUnresolvableException>();
     }
@@ -84,7 +85,7 @@ public class BrokerScopeResolverTests
         var user = new StubCurrentUserService(brokerTenantId: "");
         var resolver = new BrokerScopeResolver(repo);
 
-        var act = () => resolver.ResolveAsync(user);
+        Func<Task> act = async () => await resolver.ResolveAsync(user);
 
         await act.Should().ThrowAsync<BrokerScopeUnresolvableException>();
     }
