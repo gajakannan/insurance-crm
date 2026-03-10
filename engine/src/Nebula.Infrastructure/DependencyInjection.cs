@@ -20,7 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IReferenceDataRepository, ReferenceDataRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
-        services.AddSingleton<IAuthorizationService, PolicyAuthorizationService>();
+        services.AddSingleton<IAuthorizationService, CasbinAuthorizationService>();
         services.AddMemoryCache();
 
         return services;

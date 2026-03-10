@@ -109,7 +109,7 @@ Architecture constraints:
 
 ## 3) Phase A — Product Manager Spec (Current Baseline)
 
-Status: This repository is currently focused on the agent builder framework, and the Nebula CRM reference implementation is **in Phase C implementation** for F0001 (Dashboard) and F0002 (Broker Relationship Management). Task write endpoints exist in the contract but are not registered (404) until F0003 is activated. Phase A remains the baseline spec and Phase B is approved.
+Status: This repository is currently focused on the agent builder framework. Phase C implementation is complete for F0001 (Dashboard), F0002 (Broker Relationship Management), and F0009 (Authentication + Role-Based Login). Task write endpoints remain pending until F0003 is activated. Phase A remains the baseline spec and Phase B is approved.
 
 ### 3.1 Vision + Non-Goals
 
@@ -148,40 +148,57 @@ Status: This repository is currently focused on the agent builder framework, and
 **Note:** Features are organized as self-contained folders in `planning-mds/features/F{NNNN}-{slug}/` using the feature templates. Each folder includes `PRD.md`, `README.md`, `STATUS.md`, `GETTING-STARTED.md`, and colocated story files.
 
 **MVP Features:**
-- [F0001: Dashboard](features/F0001-dashboard/PRD.md) - Draft ready
-- [F0002: Broker & MGA Relationship Management](features/F0002-broker-relationship-management/PRD.md) - Draft ready
-- [F0003: Task Center + Reminders](features/F0003-task-center/PRD.md) - MVP (API-only)
-- F0005: Account 360 & Activity Timeline - Planned
+- [F0001: Dashboard](features/archive/F0001-dashboard/PRD.md) - Done (Archived)
+- [F0002: Broker & MGA Relationship Management](features/F0002-broker-relationship-management/PRD.md) - Done
+- [F0003: Task Center + Reminders](features/F0003-task-center/PRD.md) - Draft (API-only MVP)
+- [F0005: IdP Migration: Keycloak → authentik](features/archive/F0005-idp-migration/PRD.md) - Done (Archived)
 - F0006: Submission Intake Workflow - Planned
 - F0007: Renewal Pipeline - Planned
 - F0008: Broker Insights - Planned
-- F0009: Authentication + Role-Based Login - Planned (Phase 1, includes scoped BrokerUser login)
+- [F0009: Authentication + Role-Based Login](features/archive/F0009-authentication-and-role-based-login/PRD.md) - Done (Archived; Phase 1)
 - [F0004: Task Center UI + Manager Assignment](features/F0004-task-center-ui-and-assignment/PRD.md) - Planned
+- [F0010: Dashboard Opportunities Refactor (Pipeline Board + Insight Views)](features/F0010-dashboard-opportunities-refactor/PRD.md) - Draft
 
 ### 3.4 MVP Features and Stories (vertical-slice friendly)
 
 **Note:** User stories are written as separate markdown files organized by feature in `planning-mds/features/{feature-name}/` directories using the story template (`agents/templates/story-template.md`). Each story includes: description, acceptance criteria, edge cases, roles, and audit/timeline requirements.
 
 **MVP Stories (Feature F0001: Dashboard):**
-- [F0001-S0001: View Key Metrics Cards](features/F0001-dashboard/F0001-S0001-view-key-metrics-cards.md) - Draft ready
-- [F0001-S0002: View Pipeline Summary (Mini-Kanban)](features/F0001-dashboard/F0001-S0002-view-pipeline-summary.md) - Draft ready
-- [F0001-S0003: View My Tasks and Reminders](features/F0001-dashboard/F0001-S0003-view-my-tasks-and-reminders.md) - Draft ready
-- [F0001-S0004: View Broker Activity Feed](features/F0001-dashboard/F0001-S0004-view-broker-activity-feed.md) - Draft ready
-- [F0001-S0005: View Nudge Cards](features/F0001-dashboard/F0001-S0005-view-nudge-cards.md) - Draft ready
+- [F0001-S0001: View Key Metrics Cards](features/archive/F0001-dashboard/F0001-S0001-view-key-metrics-cards.md) - Done (Archived)
+- [F0001-S0002: View Pipeline Summary (Sankey Opportunities)](features/archive/F0001-dashboard/F0001-S0002-view-pipeline-summary.md) - Done (Archived)
+- [F0001-S0003: View My Tasks and Reminders](features/archive/F0001-dashboard/F0001-S0003-view-my-tasks-and-reminders.md) - Done (Archived)
+- [F0001-S0004: View Broker Activity Feed](features/archive/F0001-dashboard/F0001-S0004-view-broker-activity-feed.md) - Done (Archived)
+- [F0001-S0005: View Nudge Cards](features/archive/F0001-dashboard/F0001-S0005-view-nudge-cards.md) - Done (Archived)
 
 **MVP Stories (Feature F0002: Broker Relationship Management):**
-- [F0002-S0001: Create Broker](features/F0002-broker-relationship-management/F0002-S0001-create-broker.md) - Draft ready
-- [F0002-S0002: Search Brokers](features/F0002-broker-relationship-management/F0002-S0002-search-brokers.md) - Draft ready
-- [F0002-S0003: Read Broker (Broker 360 View)](features/F0002-broker-relationship-management/F0002-S0003-read-broker.md) - Draft ready
-- [F0002-S0004: Update Broker](features/F0002-broker-relationship-management/F0002-S0004-update-broker.md) - Draft ready
-- [F0002-S0005: Delete Broker](features/F0002-broker-relationship-management/F0002-S0005-delete-broker.md) - Draft ready
-- [F0002-S0006: Manage Broker Contacts](features/F0002-broker-relationship-management/F0002-S0006-manage-broker-contacts.md) - Draft ready
-- [F0002-S0007: View Broker Activity Timeline](features/F0002-broker-relationship-management/F0002-S0007-view-broker-activity-timeline.md) - Draft ready
+- [F0002-S0001: Create Broker](features/F0002-broker-relationship-management/F0002-S0001-create-broker.md) - Done
+- [F0002-S0002: Search Brokers](features/F0002-broker-relationship-management/F0002-S0002-search-brokers.md) - Done
+- [F0002-S0003: Read Broker (Broker 360 View)](features/F0002-broker-relationship-management/F0002-S0003-read-broker.md) - Done
+- [F0002-S0004: Update Broker](features/F0002-broker-relationship-management/F0002-S0004-update-broker.md) - Done
+- [F0002-S0005: Delete Broker](features/F0002-broker-relationship-management/F0002-S0005-delete-broker.md) - Done
+- [F0002-S0006: Manage Broker Contacts](features/F0002-broker-relationship-management/F0002-S0006-manage-broker-contacts.md) - Done
+- [F0002-S0007: View Broker Activity Timeline](features/F0002-broker-relationship-management/F0002-S0007-view-broker-activity-timeline.md) - Done
+- [F0002-S0008: Reactivate Broker](features/F0002-broker-relationship-management/F0002-S0008-reactivate-broker.md) - Done
+- [F0002-S0009: Adopt Native Casbin Enforcer](features/F0002-broker-relationship-management/F0002-S0009-adopt-native-casbin-enforcer.md) - Done
 
 **MVP Stories (Feature F0003: Task Center + Reminders — API-only):**
-- [F0003-S0001: Create Task](features/F0003-task-center/F0003-S0001-create-task.md) - Draft ready
-- [F0003-S0002: Update Task](features/F0003-task-center/F0003-S0002-update-task.md) - Draft ready
-- [F0003-S0003: Delete Task](features/F0003-task-center/F0003-S0003-delete-task.md) - Draft ready
+- [F0003-S0001: Create Task](features/F0003-task-center/F0003-S0001-create-task.md) - Draft
+- [F0003-S0002: Update Task](features/F0003-task-center/F0003-S0002-update-task.md) - Draft
+- [F0003-S0003: Delete Task](features/F0003-task-center/F0003-S0003-delete-task.md) - Draft
+
+**Phase 1 Stories (Feature F0009: Authentication + Role-Based Login):**
+- [F0009-S0001: Login Screen and OIDC Redirect](features/archive/F0009-authentication-and-role-based-login/F0009-S0001-login-screen-and-oidc-redirect.md) - Done (Archived)
+- [F0009-S0002: OIDC Callback and Session Bootstrap](features/archive/F0009-authentication-and-role-based-login/F0009-S0002-oidc-callback-and-session-bootstrap.md) - Done (Archived)
+- [F0009-S0003: Role-Based Entry and Protected Navigation](features/archive/F0009-authentication-and-role-based-login/F0009-S0003-role-based-entry-and-protected-navigation.md) - Done (Archived)
+- [F0009-S0004: BrokerUser Access Boundaries](features/archive/F0009-authentication-and-role-based-login/F0009-S0004-broker-user-access-boundaries.md) - Done (Archived)
+- [F0009-S0005: Seeded User Access Validation Matrix](features/archive/F0009-authentication-and-role-based-login/F0009-S0005-seeded-user-access-validation-matrix.md) - Done (Archived)
+
+**MVP Stories (Feature F0010: Dashboard Opportunities Refactor):**
+- [F0010-S0001: Replace Sankey default with Pipeline Board](features/F0010-dashboard-opportunities-refactor/F0010-S0001-replace-sankey-with-pipeline-board-default.md) - Draft
+- [F0010-S0002: Add Opportunities Aging Heatmap view](features/F0010-dashboard-opportunities-refactor/F0010-S0002-add-opportunity-aging-heatmap-view.md) - Draft
+- [F0010-S0003: Add Opportunities Composition Treemap view](features/F0010-dashboard-opportunities-refactor/F0010-S0003-add-opportunity-composition-treemap-view.md) - Draft
+- [F0010-S0004: Add Opportunities Hierarchy Sunburst view](features/F0010-dashboard-opportunities-refactor/F0010-S0004-add-opportunity-hierarchy-sunburst-view.md) - Draft
+- [F0010-S0005: Unify drilldown, responsive layout, and accessibility](features/F0010-dashboard-opportunities-refactor/F0010-S0005-unify-drilldown-responsive-and-accessibility.md) - Draft
 
 **Story Index:** See `planning-mds/features/STORY-INDEX.md` for auto-generated summary of all stories (if generated).
 
@@ -208,7 +225,7 @@ Screen baseline details:
 
 ## 4) Phase B — Architect Spec (Public Baseline)
 
-**Status: APPROVED (2026-02-14)** — Dashboard-first architecture approved as the planning baseline. Phase C implementation is in progress for F0001/F0002; keep planning artifacts current during implementation.
+**Status: APPROVED (2026-02-14)** — Dashboard-first architecture approved as the planning baseline. Phase C implementation is complete for F0001/F0002/F0009; keep planning artifacts current during ongoing F0010/F0003/F0004 work.
 
 This section defines the build-ready technical baseline for the reference implementation.
 
